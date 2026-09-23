@@ -5,6 +5,7 @@ import { Loader2, MessageSquare, Pencil, Plus, Trash2, Zap } from "lucide-react"
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -43,6 +44,7 @@ function emptyDraft(): DraftState {
 }
 
 export function QuickRepliesManager() {
+  const confirm = useConfirm();
   const [items, setItems] = useState<QuickReply[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<DraftState | null>(null);
@@ -112,7 +114,13 @@ export function QuickRepliesManager() {
 
   const remove = useCallback(
     async (id: string) => {
-      if (!window.confirm("Delete this quick reply?")) return;
+      const yes = await confirm({
+        title: "Delete quick reply",
+        description: "Agents will no longer be able to insert it from the composer.",
+        confirmLabel: "Delete",
+        destructive: true,
+      });
+      if (!yes) return;
       const res = await fetch(`/api/quick-replies/${id}`, { method: "DELETE" });
       if (!res.ok) {
         toast.error("Couldn't delete the quick reply.");
@@ -120,7 +128,7 @@ export function QuickRepliesManager() {
       }
       await load();
     },
-    [load],
+    [confirm, load],
   );
 
   return (
@@ -152,7 +160,7 @@ export function QuickRepliesManager() {
               className="flex items-start gap-3 rounded-lg border border-border bg-card p-3"
             >
               {qr.kind === "interactive" ? (
-                <Zap className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <Zap className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               ) : (
                 <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               )}
@@ -172,7 +180,7 @@ export function QuickRepliesManager() {
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => remove(qr.id)}
-                  className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -195,7 +203,6 @@ export function QuickRepliesManager() {
                   value={draft.title}
                   onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                   placeholder="e.g. Business hours"
-                  className="bg-muted text-foreground"
                 />
               </div>
               <div className="flex gap-2">
@@ -215,7 +222,7 @@ export function QuickRepliesManager() {
                   value={draft.content_text}
                   onChange={(e) => setDraft({ ...draft, content_text: e.target.value })}
                   placeholder="The message text to insert"
-                  className="min-h-28 bg-muted text-foreground"
+                  className="min-h-28"
                 />
               ) : (
                 <InteractiveBuilder
@@ -255,8 +262,8 @@ function KindTab({
       onClick={onClick}
       className={
         active
-          ? "flex-1 rounded-md border border-primary bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
-          : "flex-1 rounded-md border border-border bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+          ? "h-8 flex-1 cursor-pointer rounded-md border border-foreground/40 bg-background px-3 text-[13px] font-medium text-foreground shadow-xs dark:bg-accent"
+          : "h-8 flex-1 cursor-pointer rounded-md border border-border bg-card px-3 text-[13px] font-medium text-muted-foreground hover:text-foreground"
       }
     >
       {label}

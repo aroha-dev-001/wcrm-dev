@@ -12,6 +12,8 @@ import { Step3Personalize } from '@/components/broadcasts/step3-personalize';
 import { Step4ScheduleSend } from '@/components/broadcasts/step4-schedule-send';
 import { useBroadcastSending } from '@/hooks/use-broadcast-sending';
 import { Check } from 'lucide-react';
+import { Page, PageBody, PageHeader } from '@/components/layout/page';
+import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 
 const steps = [
@@ -130,106 +132,115 @@ export default function NewBroadcastPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('subtitle')}
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        back="/broadcasts"
+        backLabel={t('back')}
+        title={t('title')}
+        description={t('subtitle')}
+      />
 
-      {/* Step Indicator */}
-      <div className="flex items-center justify-between">
-        {steps.map((step, index) => {
-          const isActive = index === currentStep;
-          const isCompleted = index < currentStep;
+      <PageBody>
+        <div className="mx-auto max-w-3xl space-y-6">
+          {/* Step indicator */}
+          <ol className="flex items-center gap-2" aria-label={t('stepsLabel')}>
+            {steps.map((step, index) => {
+              const isActive = index === currentStep;
+              const isCompleted = index < currentStep;
 
-          return (
-            <div key={step.key} className="flex flex-1 items-center">
-              <div className="flex items-center gap-2">
-                <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-all ${
-                    isCompleted
-                      ? 'bg-primary text-primary-foreground'
-                      : isActive
-                        ? 'border-2 border-primary bg-primary/10 text-primary'
-                        : 'border border-border bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {isCompleted ? <Check className="h-4 w-4" /> : index + 1}
-                </div>
-                <span
-                  className={`hidden text-sm font-medium sm:block ${
-                    isActive ? 'text-foreground' : isCompleted ? 'text-primary' : 'text-muted-foreground'
-                  }`}
-                >
-                  {t(`steps.${step.label}`)}
-                </span>
-              </div>
-              {index < steps.length - 1 && (
-                <div
-                  className={`mx-3 h-px flex-1 ${
-                    index < currentStep ? 'bg-primary' : 'bg-muted'
-                  }`}
+              return (
+                <li key={step.key} className="flex flex-1 items-center gap-2">
+                  <div
+                    className="flex items-center gap-2"
+                    aria-current={isActive ? 'step' : undefined}
+                  >
+                    <span
+                      className={cn(
+                        'flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums transition-colors',
+                        isCompleted
+                          ? 'bg-primary text-primary-foreground'
+                          : isActive
+                            ? 'bg-foreground text-background'
+                            : 'border border-border-strong text-muted-foreground',
+                      )}
+                    >
+                      {isCompleted ? <Check className="size-3.5" strokeWidth={3} /> : index + 1}
+                    </span>
+                    <span
+                      className={cn(
+                        'hidden text-[13px] font-medium sm:block',
+                        isActive ? 'text-foreground' : 'text-muted-foreground',
+                      )}
+                    >
+                      {t(`steps.${step.label}`)}
+                    </span>
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div
+                      className={cn(
+                        'h-px flex-1',
+                        index < currentStep ? 'bg-primary/60' : 'bg-border',
+                      )}
+                    />
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+
+          {/* Step Content */}
+          <div className="relative rounded-lg border border-border bg-card p-5">
+            <div
+              className="transition-opacity duration-200"
+              style={{
+                opacity: isProcessing ? 0.6 : 1,
+                pointerEvents: isProcessing ? 'none' : 'auto',
+              }}
+            >
+              {currentStep === 0 && (
+                <Step1ChooseTemplate
+                  selectedTemplate={template}
+                  onSelect={setTemplate}
+                  onNext={() => setCurrentStep(1)}
+                  onBack={() => router.push('/broadcasts')}
+                />
+              )}
+              {currentStep === 1 && (
+                <Step2SelectAudience
+                  audience={audience}
+                  onUpdate={setAudience}
+                  onNext={() => setCurrentStep(2)}
+                  onBack={() => setCurrentStep(0)}
+                />
+              )}
+              {currentStep === 2 && template && (
+                <Step3Personalize
+                  template={template}
+                  variables={variables}
+                  onUpdate={setVariables}
+                  headerMediaUrl={headerMediaUrl}
+                  onHeaderMediaUrlChange={setHeaderMediaUrl}
+                  onNext={() => setCurrentStep(3)}
+                  onBack={() => setCurrentStep(1)}
+                />
+              )}
+              {currentStep === 3 && template && (
+                <Step4ScheduleSend
+                  name={name}
+                  onNameChange={setName}
+                  template={template}
+                  audience={audience}
+                  onSend={handleSend}
+                  onSaveDraft={handleSaveDraft}
+                  onBack={() => setCurrentStep(2)}
+                  isProcessing={isProcessing}
+                  progress={progress}
                 />
               )}
             </div>
-          );
-        })}
-      </div>
-
-      {/* Step Content */}
-      <div className="relative min-h-[400px]">
-        <div
-          className="transition-all duration-300 ease-in-out"
-          style={{
-            opacity: isProcessing ? 0.6 : 1,
-            pointerEvents: isProcessing ? 'none' : 'auto',
-          }}
-        >
-          {currentStep === 0 && (
-            <Step1ChooseTemplate
-              selectedTemplate={template}
-              onSelect={setTemplate}
-              onNext={() => setCurrentStep(1)}
-              onBack={() => router.push('/broadcasts')}
-            />
-          )}
-          {currentStep === 1 && (
-            <Step2SelectAudience
-              audience={audience}
-              onUpdate={setAudience}
-              onNext={() => setCurrentStep(2)}
-              onBack={() => setCurrentStep(0)}
-            />
-          )}
-          {currentStep === 2 && template && (
-            <Step3Personalize
-              template={template}
-              variables={variables}
-              onUpdate={setVariables}
-              headerMediaUrl={headerMediaUrl}
-              onHeaderMediaUrlChange={setHeaderMediaUrl}
-              onNext={() => setCurrentStep(3)}
-              onBack={() => setCurrentStep(1)}
-            />
-          )}
-          {currentStep === 3 && template && (
-            <Step4ScheduleSend
-              name={name}
-              onNameChange={setName}
-              template={template}
-              audience={audience}
-              onSend={handleSend}
-              onSaveDraft={handleSaveDraft}
-              onBack={() => setCurrentStep(2)}
-              isProcessing={isProcessing}
-              progress={progress}
-            />
-          )}
+          </div>
         </div>
-      </div>
-    </div>
+      </PageBody>
+    </Page>
   );
 }

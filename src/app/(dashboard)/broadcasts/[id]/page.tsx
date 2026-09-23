@@ -20,21 +20,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  ArrowLeft,
   Loader2,
-  Users,
-  Send,
-  CheckCheck,
-  Eye,
-  AlertCircle,
-  MessageCircle,
-  Filter,
   Download,
   ChevronDown,
   Trash2,
   PlayCircle,
   RotateCcw,
+  Check,
+  Users,
 } from 'lucide-react';
+import { Page, PageBody, PageHeader } from '@/components/layout/page';
+import { Badge, StatusDot } from '@/components/ui/badge';
+import { Panel, PanelHeader } from '@/components/ui/panel';
+import { Stat, StatStrip } from '@/components/ui/stat-strip';
+import { EmptyState, ErrorState } from '@/components/ui/empty-state';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { LoadingState } from '@/components/ui/spinner';
 import { toast } from 'sonner';
 import {
   getBroadcastStatus,
@@ -42,75 +43,41 @@ import {
 } from '@/lib/broadcast-status';
 import { useTranslations } from 'next-intl';
 
-interface StatCardProps {
-  label: string;
-  value: number;
-  total: number;
-  icon: React.ReactNode;
-  color: string;
-}
-
-function StatCard({ label, value, total, icon, color }: StatCardProps) {
-  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-  return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between">
-        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${color}`}>
-          {icon}
-        </div>
-        <span className="text-xs text-muted-foreground">{pct}%</span>
-      </div>
-      <p className="mt-3 text-2xl font-bold text-foreground">{value.toLocaleString()}</p>
-      <p className="text-xs text-muted-foreground">{label}</p>
-    </div>
-  );
-}
-
 interface FunnelStep {
   label: string;
   value: number;
-  color: string;
 }
 
 /**
- * Pure-CSS funnel chart: decreasing-width rounded bars.
- * Width is relative to the largest step (typically Sent) so we
- * always render a full bar at the top and proportional tails.
+ * Delivery funnel as a ranked bar list. Widths are relative to Sent so
+ * each stage reads as a share of what actually went out.
  */
-function FunnelChart({ steps }: { steps: FunnelStep[] }) {
-  const max = Math.max(...steps.map((s) => s.value), 1);
+function Funnel({ steps, title, hint }: { steps: FunnelStep[]; title: string; hint: string }) {
+  const base = Math.max(steps[0]?.value ?? 0, 1);
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <h3 className="mb-4 text-sm font-medium text-foreground">Funnel</h3>
-      <div className="space-y-2">
+    <Panel>
+      <PanelHeader title={title} description={hint} />
+      <div className="space-y-3 px-4 py-4">
         {steps.map((step) => {
-          const pctOfMax = Math.max(5, Math.round((step.value / max) * 100));
-          const pctOfSent =
-            steps[0].value > 0
-              ? Math.round((step.value / steps[0].value) * 100)
-              : 0;
+          const pct = Math.round((step.value / base) * 100);
           return (
-            <div key={step.label} className="flex items-center gap-3">
-              <span className="w-20 shrink-0 text-xs text-muted-foreground">
-                {step.label}
-              </span>
-              <div className="relative h-7 flex-1 rounded-full bg-muted">
+            <div key={step.label} className="grid grid-cols-[88px_1fr_88px] items-center gap-3 text-[13px]">
+              <span className="text-muted-foreground">{step.label}</span>
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
                 <div
-                  className={`h-7 rounded-full ${step.color} transition-[width] duration-500`}
-                  style={{ width: `${pctOfMax}%` }}
+                  className="h-2 rounded-full bg-chart-1 transition-[width] duration-500"
+                  style={{ width: `${Math.max(step.value > 0 ? 2 : 0, pct)}%` }}
                 />
-                <span className="absolute inset-0 flex items-center px-3 text-xs font-medium text-foreground">
-                  {step.value.toLocaleString()}
-                  <span className="ml-2 text-muted-foreground/80">
-                    ({pctOfSent}%)
-                  </span>
-                </span>
               </div>
+              <span className="text-right text-foreground tabular-nums">
+                {step.value.toLocaleString()}
+                <span className="ml-1.5 text-xs text-muted-foreground">{pct}%</span>
+              </span>
             </div>
           );
         })}
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -300,20 +267,32 @@ export default function BroadcastDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
+      <Page>
+        <PageBody>
+          <LoadingState />
+        </PageBody>
+      </Page>
     );
   }
 
   if (error || !broadcast) {
     return (
-      <div className="flex h-64 flex-col items-center justify-center gap-2">
-        <p className="text-sm text-red-400">{error ?? t('notFound')}</p>
-        <Button variant="outline" onClick={() => router.push('/broadcasts')}>
-          {t('backToBroadcasts')}
-        </Button>
-      </div>
+      <Page>
+        <PageHeader title={t('notFound')} back="/broadcasts" backLabel={t('backToBroadcasts')} />
+        <PageBody>
+          <div className="rounded-lg border border-border bg-card">
+            <ErrorState
+              title={t('notFound')}
+              description={error ?? undefined}
+              action={
+                <Button variant="outline" size="sm" onClick={() => router.push('/broadcasts')}>
+                  {t('backToBroadcasts')}
+                </Button>
+              }
+            />
+          </div>
+        </PageBody>
+      </Page>
     );
   }
 
@@ -327,314 +306,245 @@ export default function BroadcastDetailPage() {
   const isStalled = broadcast.status === 'sending' && pendingCount > 0;
 
   const funnelSteps: FunnelStep[] = [
-    { label: t('stats.sent'), value: broadcast.sent_count, color: 'bg-primary' },
-    { label: t('stats.delivered'), value: broadcast.delivered_count, color: 'bg-teal-500' },
-    { label: t('stats.read'), value: broadcast.read_count, color: 'bg-blue-500' },
-    { label: t('stats.replied'), value: broadcast.replied_count, color: 'bg-indigo-500' },
+    { label: t('stats.sent'), value: broadcast.sent_count },
+    { label: t('stats.delivered'), value: broadcast.delivered_count },
+    { label: t('stats.read'), value: broadcast.read_count },
+    { label: t('stats.replied'), value: broadcast.replied_count },
   ];
 
+  const total = broadcast.total_recipients;
+  const pctOf = (n: number) =>
+    t('ofRecipients', { pct: total > 0 ? Math.round((n / total) * 100) : 0 });
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => router.push('/broadcasts')}
-            className="border-border"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-foreground">{broadcast.name}</h1>
-              <span
-                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${status.classes}`}
-              >
-                {tStatus(status.label)}
-              </span>
-            </div>
-            <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
-              <span>{t('template', { name: broadcast.template_name })}</span>
-              <span>-</span>
-              <span>
-                {t('createdAt', { date: new Date(broadcast.created_at).toLocaleDateString() })}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Delete — inline-confirm pattern matches the pipeline-settings
-            "Delete Pipeline" flow. Mid-send broadcasts can't be deleted
-            because orphaning in-flight Meta messages would leave the
-            funnel inconsistent. */}
-        {confirmDelete ? (
-          <div className="flex items-center gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm">
-            <span className="text-red-300">{t('deletePrompt')}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setConfirmDelete(false)}
-              disabled={deleting}
-              className="h-7 border-border bg-transparent text-muted-foreground hover:bg-muted"
-            >
-              {t('cancel')}
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="h-7 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-            >
-              {deleting ? t('deleting') : t('confirm')}
-            </Button>
-          </div>
-        ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={broadcast.status === 'sending'}
-            onClick={() => setConfirmDelete(true)}
-            title={
-              broadcast.status === 'sending'
-                ? t('cannotDeleteSending')
-                : t('deleteHover')
-            }
-            className="border-red-500/30 bg-transparent text-red-400 hover:bg-red-500/10 disabled:opacity-40"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            {t('delete')}
-          </Button>
-        )}
-      </div>
-
-      {/* Resume / retry (issue #472). Only rendered when there is
-          actually something outstanding. */}
-      {(pendingCount > 0 || retryableCount > 0) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
-          <div className="text-sm">
-            <p className="font-medium text-foreground">
-              {isStalled ? t('resumeStalledTitle') : t('resumeTitle')}
-            </p>
-            <p className="mt-0.5 text-muted-foreground">
-              {isStalled
-                ? t('resumeStalledHint', { count: pendingCount })
-                : t('resumeHint', { count: retryableCount })}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {pendingCount > 0 && (
+    <Page>
+      <PageHeader
+        back="/broadcasts"
+        backLabel={t('backToBroadcasts')}
+        title={broadcast.name}
+        badge={
+          <Badge className={status.classes}>
+            {status.pulse && !isStalled && <StatusDot className="animate-pulse" />}
+            {tStatus(status.label)}
+          </Badge>
+        }
+        description={
+          <>
+            {t('template', { name: broadcast.template_name })}
+            <span className="mx-1.5 text-border-strong">·</span>
+            {t('createdAt', { date: new Date(broadcast.created_at).toLocaleDateString() })}
+          </>
+        }
+        actions={
+          confirmDelete ? (
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] text-foreground">{t('deletePrompt')}</span>
               <Button
+                variant="ghost"
                 size="sm"
-                onClick={() => handleResume('pending')}
-                disabled={resumingScope !== null}
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
               >
-                {resumingScope === 'pending' ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <PlayCircle className="h-3.5 w-3.5" />
-                )}
-                {t('resumePending', { count: pendingCount })}
+                {t('cancel')}
               </Button>
-            )}
-            {retryableCount > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? t('deleting') : t('confirm')}
+              </Button>
+            </div>
+          ) : (
+            <>
               <Button
                 variant="outline"
-                size="sm"
-                onClick={() => handleResume('failed')}
-                disabled={resumingScope !== null}
-                className="border-border text-muted-foreground hover:bg-muted"
+                onClick={handleExport}
+                disabled={recipients.length === 0}
               >
-                {resumingScope === 'failed' ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <RotateCcw className="h-3.5 w-3.5" />
-                )}
-                {t('retryFailed', { count: retryableCount })}
+                <Download />
+                {t('exportCsv')}
               </Button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Stats — 6 cards: Total / Sent / Delivered / Read / Replied / Failed */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <StatCard
-          label={t('stats.totalRecipients')}
-          value={broadcast.total_recipients}
-          total={broadcast.total_recipients}
-          icon={<Users className="h-4 w-4" />}
-          color="bg-muted text-muted-foreground"
-        />
-        <StatCard
-          label={t('stats.sent')}
-          value={broadcast.sent_count}
-          total={broadcast.total_recipients}
-          icon={<Send className="h-4 w-4" />}
-          color="bg-primary/10 text-primary"
-        />
-        <StatCard
-          label={t('stats.delivered')}
-          value={broadcast.delivered_count}
-          total={broadcast.total_recipients}
-          icon={<CheckCheck className="h-4 w-4" />}
-          color="bg-teal-500/10 text-teal-400"
-        />
-        <StatCard
-          label={t('stats.read')}
-          value={broadcast.read_count}
-          total={broadcast.total_recipients}
-          icon={<Eye className="h-4 w-4" />}
-          color="bg-blue-500/10 text-blue-400"
-        />
-        <StatCard
-          label={t('stats.replied')}
-          value={broadcast.replied_count}
-          total={broadcast.total_recipients}
-          icon={<MessageCircle className="h-4 w-4" />}
-          color="bg-indigo-500/10 text-indigo-400"
-        />
-        <StatCard
-          label={t('stats.failed')}
-          value={broadcast.failed_count}
-          total={broadcast.total_recipients}
-          icon={<AlertCircle className="h-4 w-4" />}
-          color="bg-red-500/10 text-red-400"
-        />
-      </div>
-
-      <FunnelChart steps={funnelSteps} />
-
-      {/* Recipients Table */}
-      <div className="rounded-xl border border-border bg-card">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
-          <h2 className="text-sm font-medium text-foreground">
-            {statusFilter !== 'all'
-              ? t('recipientsHeader', { filtered: filteredRecipients.length, total: recipients.length })
-              : t('recipientsHeaderAll', { total: recipients.length })}
-          </h2>
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-border text-muted-foreground hover:bg-muted"
-                  />
+              {/* Delete — inline confirm. Mid-send broadcasts can't be
+                  deleted: orphaning in-flight Meta messages would leave
+                  the funnel inconsistent. */}
+              <Button
+                variant="destructive-outline"
+                disabled={broadcast.status === 'sending'}
+                onClick={() => setConfirmDelete(true)}
+                title={
+                  broadcast.status === 'sending'
+                    ? t('cannotDeleteSending')
+                    : t('deleteHover')
                 }
               >
-                <Filter className="h-3.5 w-3.5" />
-                {statusFilter === 'all'
-                  ? t('allStatuses')
-                  : tStatus(getRecipientStatus(statusFilter).label)}
-                <ChevronDown className="h-3 w-3" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="border-border bg-popover">
-                <DropdownMenuItem
-                  onClick={() => setStatusFilter('all')}
-                  className={
-                    statusFilter === 'all' ? 'text-primary' : 'text-popover-foreground'
-                  }
+                <Trash2 />
+                {t('delete')}
+              </Button>
+            </>
+          )
+        }
+      />
+
+      <PageBody className="space-y-4">
+        {/* Resume / retry (issue #472). Only rendered when there is
+            actually something outstanding. */}
+        {(pendingCount > 0 || retryableCount > 0) && (
+          <Alert variant={isStalled ? 'warning' : 'default'} className="flex flex-wrap items-center justify-between gap-3 pr-3">
+            <div className="min-w-0">
+              <AlertTitle>
+                {isStalled ? t('resumeStalledTitle') : t('resumeTitle')}
+              </AlertTitle>
+              <AlertDescription>
+                {isStalled
+                  ? t('resumeStalledHint', { count: pendingCount })
+                  : t('resumeHint', { count: retryableCount })}
+              </AlertDescription>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {pendingCount > 0 && (
+                <Button
+                  size="sm"
+                  onClick={() => handleResume('pending')}
+                  disabled={resumingScope !== null}
                 >
-                  {t('allStatuses')}
-                </DropdownMenuItem>
-                {RECIPIENT_STATUSES.map((s) => (
-                  <DropdownMenuItem
-                    key={s}
-                    onClick={() => setStatusFilter(s)}
-                    className={
-                      statusFilter === s
-                        ? 'text-primary'
-                        : 'text-popover-foreground'
-                    }
-                  >
-                    {tStatus(getRecipientStatus(s).label)}
+                  {resumingScope === 'pending' ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <PlayCircle />
+                  )}
+                  {t('resumePending', { count: pendingCount })}
+                </Button>
+              )}
+              {retryableCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleResume('failed')}
+                  disabled={resumingScope !== null}
+                >
+                  {resumingScope === 'failed' ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <RotateCcw />
+                  )}
+                  {t('retryFailed', { count: retryableCount })}
+                </Button>
+              )}
+            </div>
+          </Alert>
+        )}
+
+        <StatStrip className="sm:grid-cols-3 xl:grid-cols-6">
+          <Stat label={t('stats.totalRecipients')} value={total.toLocaleString()} />
+          <Stat label={t('stats.sent')} value={broadcast.sent_count.toLocaleString()} hint={pctOf(broadcast.sent_count)} />
+          <Stat label={t('stats.delivered')} value={broadcast.delivered_count.toLocaleString()} hint={pctOf(broadcast.delivered_count)} />
+          <Stat label={t('stats.read')} value={broadcast.read_count.toLocaleString()} hint={pctOf(broadcast.read_count)} />
+          <Stat label={t('stats.replied')} value={broadcast.replied_count.toLocaleString()} hint={pctOf(broadcast.replied_count)} />
+          <Stat
+            label={t('stats.failed')}
+            value={
+              <span className={broadcast.failed_count > 0 ? 'text-destructive' : undefined}>
+                {broadcast.failed_count.toLocaleString()}
+              </span>
+            }
+            hint={pctOf(broadcast.failed_count)}
+          />
+        </StatStrip>
+
+        <Funnel steps={funnelSteps} title={t('funnel')} hint={t('funnelHint')} />
+
+        {/* Recipients */}
+        <Panel>
+          <PanelHeader
+            title={
+              statusFilter !== 'all'
+                ? t('recipientsHeader', { filtered: filteredRecipients.length, total: recipients.length })
+                : t('recipientsHeaderAll', { total: recipients.length })
+            }
+            actions={
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+                  {statusFilter === 'all'
+                    ? t('allStatuses')
+                    : tStatus(getRecipientStatus(statusFilter).label)}
+                  <ChevronDown className="text-muted-foreground" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem onClick={() => setStatusFilter('all')}>
+                    <span className="flex-1">{t('allStatuses')}</span>
+                    {statusFilter === 'all' && <Check className="size-3.5 text-foreground!" />}
                   </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  {RECIPIENT_STATUSES.map((s) => (
+                    <DropdownMenuItem key={s} onClick={() => setStatusFilter(s)}>
+                      <span className="flex-1">{tStatus(getRecipientStatus(s).label)}</span>
+                      {statusFilter === s && <Check className="size-3.5 text-foreground!" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            }
+          />
 
-            <Button
-              variant="outline"
+          {filteredRecipients.length === 0 ? (
+            <EmptyState
               size="sm"
-              onClick={handleExport}
-              disabled={recipients.length === 0}
-              className="border-border text-muted-foreground hover:bg-muted"
-            >
-              <Download className="h-3.5 w-3.5" />
-              {t('exportCsv')}
-            </Button>
-          </div>
-        </div>
-
-        {filteredRecipients.length === 0 ? (
-          <div className="flex h-32 items-center justify-center">
-            <p className="text-sm text-muted-foreground">
-              {recipients.length === 0
-                ? t('noRecipients')
-                : t('noRecipientsFilter')}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
+              icon={Users}
+              title={recipients.length === 0 ? t('noRecipients') : t('noRecipientsFilter')}
+            />
+          ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-muted-foreground">{t('table.contact')}</TableHead>
-                  <TableHead className="text-muted-foreground">{t('table.phone')}</TableHead>
-                  <TableHead className="text-muted-foreground">{t('table.status')}</TableHead>
-                  <TableHead className="text-muted-foreground">{t('table.sent')}</TableHead>
-                  <TableHead className="text-muted-foreground">{t('table.delivered')}</TableHead>
-                  <TableHead className="text-muted-foreground">{t('table.read')}</TableHead>
-                  <TableHead className="text-muted-foreground">{t('table.error')}</TableHead>
+                <TableRow>
+                  <TableHead>{t('table.contact')}</TableHead>
+                  <TableHead>{t('table.phone')}</TableHead>
+                  <TableHead>{t('table.status')}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t('table.sent')}</TableHead>
+                  <TableHead className="hidden lg:table-cell">{t('table.delivered')}</TableHead>
+                  <TableHead className="hidden lg:table-cell">{t('table.read')}</TableHead>
+                  <TableHead>{t('table.error')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredRecipients.map((recipient) => {
                   const rStatus = getRecipientStatus(recipient.status);
+                  const fmt = (v?: string | null) =>
+                    v ? new Date(v).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—';
                   return (
-                    <TableRow key={recipient.id} className="border-border">
-                      <TableCell className="font-medium text-foreground">
-                        {recipient.contact?.name ?? 'Unknown'}
+                    <TableRow key={recipient.id}>
+                      <TableCell className="max-w-52 truncate font-medium text-foreground">
+                        {recipient.contact?.name ?? t('unknownContact')}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {recipient.contact?.phone ?? '-'}
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {recipient.contact?.phone ?? '—'}
                       </TableCell>
                       <TableCell>
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${rStatus.classes}`}
-                        >
-                          {tStatus(rStatus.label)}
-                        </span>
+                        <Badge className={rStatus.classes}>{tStatus(rStatus.label)}</Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {recipient.sent_at
-                          ? new Date(recipient.sent_at).toLocaleString()
-                          : '-'}
+                      <TableCell className="hidden text-xs text-muted-foreground tabular-nums md:table-cell">
+                        {fmt(recipient.sent_at)}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {recipient.delivered_at
-                          ? new Date(recipient.delivered_at).toLocaleString()
-                          : '-'}
+                      <TableCell className="hidden text-xs text-muted-foreground tabular-nums lg:table-cell">
+                        {fmt(recipient.delivered_at)}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {recipient.read_at
-                          ? new Date(recipient.read_at).toLocaleString()
-                          : '-'}
+                      <TableCell className="hidden text-xs text-muted-foreground tabular-nums lg:table-cell">
+                        {fmt(recipient.read_at)}
                       </TableCell>
-                      <TableCell className="max-w-xs truncate text-xs text-red-400">
-                        {recipient.error_message ?? '-'}
+                      <TableCell
+                        className="max-w-xs truncate text-xs text-destructive"
+                        title={recipient.error_message ?? undefined}
+                      >
+                        {recipient.error_message ?? <span className="text-subtle-foreground">—</span>}
                       </TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
-          </div>
-        )}
-      </div>
-    </div>
+          )}
+        </Panel>
+      </PageBody>
+    </Page>
   );
 }

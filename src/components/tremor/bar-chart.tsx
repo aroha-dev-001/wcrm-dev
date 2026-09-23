@@ -469,19 +469,18 @@ const ChartTooltip = ({
     return (
       <div
         className={cx(
-          "rounded-md border text-sm shadow-md",
-          "border-border",
-          "bg-popover",
+          "rounded-md text-xs",
+          "bg-popover shadow-popover",
         )}
       >
-        <div className={cx("border-b border-inherit px-4 py-2")}>
+        <div className={cx("border-b border-border px-3 py-1.5")}>
           <p
             className={cx("font-medium", "text-popover-foreground")}
           >
             {label}
           </p>
         </div>
-        <div className={cx("space-y-1 px-4 py-2")}>
+        <div className={cx("space-y-1 px-3 py-1.5")}>
           {payload.map(({ value, category, color }, index) => (
             <div
               key={`id-${index}`}

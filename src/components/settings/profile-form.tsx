@@ -14,7 +14,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from '@/components/ui/avatar';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { useTranslations } from 'next-intl';
 import { SettingsPanelHead } from './settings-panel-head';
 import { BrowserNotificationsCard } from './browser-notifications-card';
@@ -208,7 +208,7 @@ export function ProfileForm() {
     : '—';
 
   return (
-    <section className="max-w-2xl animate-in fade-in-50 duration-200">
+    <section className="max-w-2xl">
       <SettingsPanelHead
         title={t('title')}
         description={t('description')}
@@ -222,7 +222,7 @@ export function ProfileForm() {
               {currentAvatar ? (
                 <AvatarImage src={currentAvatar} alt={fullName || 'Avatar'} />
               ) : null}
-              <AvatarFallback className="bg-primary/10 text-base text-primary">
+              <AvatarFallback className="bg-primary-soft text-base text-primary">
                 {initial}
               </AvatarFallback>
             </Avatar>
@@ -250,7 +250,6 @@ export function ProfileForm() {
                   variant="ghost"
                   onClick={onRemoveAvatar}
                   disabled={saving}
-                  className="text-muted-foreground hover:text-foreground"
                 >
                   <Trash2 className="size-4" />
                   {t('remove')}
@@ -292,7 +291,7 @@ export function ProfileForm() {
               required
             />
             {emailChangePending && (
-              <p className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+              <p className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
                 <Mail className="mt-0.5 size-3.5 shrink-0" />
                 <span>
                   {t.rich('emailChangeHint', { 
@@ -306,11 +305,11 @@ export function ProfileForm() {
           </div>
 
           {/* Read-only block */}
-          <div className="rounded-lg border border-border bg-muted p-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="rounded-md border border-border bg-card-2 p-3.5">
+            <p className="mb-3 text-xs font-medium text-muted-foreground">
               {t('accountDetails')}
             </p>
-            <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+            <dl className="grid grid-cols-1 gap-3 text-[13px] sm:grid-cols-2">
               <div>
                 <dt className="text-muted-foreground">{t('role')}</dt>
                 <dd className="mt-0.5 font-mono text-foreground">
@@ -338,20 +337,19 @@ export function ProfileForm() {
           )}
 
         </CardContent>
-        </Card>
-
-        <div className="flex justify-end">
+        <CardFooter className="justify-end">
           <Button type="submit" disabled={saving || !dirty || !profile}>
             {saving ? (
               <>
-                <Loader2 className="size-4 animate-spin" />
+                <Loader2 className="animate-spin" />
                 {t('saving')}
               </>
             ) : (
               t('saveChanges')
             )}
           </Button>
-        </div>
+        </CardFooter>
+        </Card>
       </form>
 
       {/* Device-scoped, so it lives outside the profile form and its

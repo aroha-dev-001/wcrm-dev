@@ -42,7 +42,7 @@ export function AccountAccessAlert() {
   };
 
   return (
-    <Alert variant="destructive" className="mb-4">
+    <Alert variant="destructive" className="mx-4 mt-3 w-auto shrink-0 sm:mx-6">
       <TriangleAlert />
       <AlertTitle>
         {accountStatus === "unlinked" ? t("unlinkedTitle") : t("errorTitle")}
@@ -59,7 +59,7 @@ export function AccountAccessAlert() {
       </AlertDescription>
       <AlertAction>
         <Button size="sm" variant="outline" onClick={retry} disabled={retrying}>
-          {retrying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+          {retrying ? <Loader2 className="animate-spin" /> : null}
           {t("retry")}
         </Button>
       </AlertAction>

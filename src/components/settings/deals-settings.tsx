@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Coins, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -19,6 +19,7 @@ import {
 import { useTranslations } from "next-intl";
 import { SettingsPanelHead } from "./settings-panel-head";
 
+import { nativeSelectClass } from "@/components/ui/native-select";
 /**
  * Deals settings — account-wide default currency.
  *
@@ -70,29 +71,28 @@ export function DealsSettings() {
   }
 
   return (
-    <section className="max-w-2xl animate-in fade-in-50 duration-200">
+    <section className="max-w-2xl">
       <SettingsPanelHead
         title={t("title")}
         description={t("description")}
       />
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-foreground">
-            <Coins className="size-4 text-primary" />
+          <CardTitle className="flex items-center gap-2">
             {t("defaultCurrency")}
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription>
             {t("defaultCurrencyDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-2 sm:max-w-xs">
-            <Label className="text-muted-foreground">{t("currencyLabel")}</Label>
+            <Label>{t("currencyLabel")}</Label>
             <select
               value={selected}
               onChange={(e) => setSelected(e.target.value)}
               disabled={!canEditSettings || profileLoading}
-              className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+              className={nativeSelectClass}
             >
               {CURRENCIES.map((c) => (
                 <option key={c.code} value={c.code}>
@@ -111,7 +111,6 @@ export function DealsSettings() {
             <Button
               onClick={handleSave}
               disabled={saving || !dirty}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {saving ? (
                 <>

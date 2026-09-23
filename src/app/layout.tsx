@@ -8,9 +8,10 @@ import { ThemeProvider } from "@/hooks/use-theme";
 import { ThemedToaster } from "@/components/themed-toaster";
 import {
   DEFAULT_MODE,
+  DEFAULT_MODE_PREFERENCE,
   DEFAULT_THEME,
+  MODE_PREFERENCES,
   MODE_STORAGE_KEY,
-  MODES,
   STORAGE_KEY,
   THEME_IDS,
 } from "@/lib/themes";
@@ -41,8 +42,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#020617",
-  colorScheme: "dark light",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#111214" },
+  ],
+  colorScheme: "light dark",
 };
 
 // Inline boot script — runs before React hydrates so the user's
@@ -53,7 +57,7 @@ export const viewport: Viewport = {
 //
 // Kept dependency-free (no imports, no JSX) — must be a string the
 // browser can run as a single <script>. Knowledge of valid ids is
-// sourced from the THEME_IDS / MODES constants so adding one doesn't
+// sourced from the THEME_IDS / MODE_PREFERENCES constants so adding one doesn't
 // silently break the boot path.
 const THEME_BOOT_SCRIPT = `
 (function(){
@@ -66,10 +70,14 @@ const THEME_BOOT_SCRIPT = `
     d.dataset.theme = THEMES.indexOf(savedTheme) !== -1 ? savedTheme : THEME_DEFAULT;
 
     var MODE_KEY = ${JSON.stringify(MODE_STORAGE_KEY)};
-    var MODE_DEFAULT = ${JSON.stringify(DEFAULT_MODE)};
-    var MODES = ${JSON.stringify(MODES)};
-    var savedMode = localStorage.getItem(MODE_KEY);
-    d.dataset.mode = MODES.indexOf(savedMode) !== -1 ? savedMode : MODE_DEFAULT;
+    var PREF_DEFAULT = ${JSON.stringify(DEFAULT_MODE_PREFERENCE)};
+    var PREFS = ${JSON.stringify(MODE_PREFERENCES)};
+    var savedPref = localStorage.getItem(MODE_KEY);
+    var pref = PREFS.indexOf(savedPref) !== -1 ? savedPref : PREF_DEFAULT;
+    if (pref === "system") {
+      pref = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    d.dataset.mode = pref;
   } catch (_e) {
     d.dataset.theme = ${JSON.stringify(DEFAULT_THEME)};
     d.dataset.mode = ${JSON.stringify(DEFAULT_MODE)};

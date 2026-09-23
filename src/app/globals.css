@@ -2,13 +2,18 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* `dark:` utilities follow the app's own mode attribute (set on <html>
+ * by the boot script / ThemeProvider), not a `.dark` class. Before this
+ * was bound to `.dark`, which nothing ever set — every `dark:` style in
+ * the codebase was silently dead. */
+@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -26,10 +31,13 @@
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
@@ -39,15 +47,21 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  /* Secondary card surface (tile / hover backgrounds) and the accent
-   * extras the Settings redesign leans on. The raw --primary-* vars
-   * already exist per-accent below; these mappings expose them (and
-   * --card-2) as Tailwind utilities: bg-card-2, bg-primary-soft,
-   * bg-primary-soft-2, hover:bg-primary-hover. */
+  /* Secondary surface (subtle panels, table headers, hovered tiles). */
   --color-card-2: var(--card-2);
   --color-primary-hover: var(--primary-hover);
   --color-primary-soft: var(--primary-soft);
   --color-primary-soft-2: var(--primary-soft-2);
+  /* Semantic status colours. Each is tuned per mode so `text-success`
+   * stays legible on both surfaces; tints come from opacity modifiers
+   * (`bg-success/10`, `border-success/30`). */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-danger: var(--destructive);
+  /* Outbound chat bubble. */
+  --color-bubble-out: var(--bubble-out);
+  --color-bubble-in: var(--bubble-in);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -55,176 +69,333 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --shadow-xs: 0 1px 2px 0 oklch(0 0 0 / 0.04);
+  --shadow-popover: 0 0 0 1px var(--border), 0 8px 24px -6px oklch(0 0 0 / 0.14),
+    0 2px 6px -2px oklch(0 0 0 / 0.08);
 }
 
 /* ============================================================
  * THEMING — two orthogonal dimensions
  *
  *   1. MODE   (light / dark)  → neutral surfaces. Selected with
- *      `document.documentElement.dataset.mode`. Defaults to dark.
- *   2. ACCENT (violet / …)    → the primary color only. Selected
+ *      `document.documentElement.dataset.mode`. The user can pick
+ *      light, dark, or "system" (resolved to one of the two).
+ *   2. ACCENT (violet / …)    → the primary colour only. Selected
  *      with `document.documentElement.dataset.theme`.
  *
- * The two compose: any accent works in either mode. Neutral
- * tokens (background / card / border / muted / sidebar surfaces /
- * neutral charts / radius) live in the MODE blocks below; accent
- * tokens (--primary*, --ring, --chart-1, --sidebar-primary*,
- * --sidebar-ring) live in the ACCENT blocks. They set disjoint
- * variables, so cascade order between them doesn't matter.
- *
- * `:root` carries the dark-mode + violet defaults so a visitor
- * renders correctly before JS runs; the boot script in
+ * Neutrals are a near-achromatic cool grey (hue 265, chroma ≤ 0.012)
+ * so the interface reads as calm and neutral; the accent is reserved
+ * for primary actions, focus, selection and data. The boot script in
  * layout.tsx replays the saved mode + accent before first paint.
- *
- * The three `--primary-*` extras (hover / soft / soft-2) feed
- * hovered primary buttons and tinted-primary surfaces (sidebar
- * active pill, validation badges).
- *
- * Token shapes come straight from the design handoff at
- * project/Color Themes.html — change one, change the other.
  * ============================================================ */
 
 /* ---- MODE: neutral surfaces ---- */
 
 :root,
-html[data-mode="dark"] {
-  --background: oklch(0.13 0.01 260);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.18 0.01 260);
-  --card-2: oklch(0.205 0.01 260);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.18 0.01 260);
-  --popover-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.22 0.01 260);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.22 0.01 260);
-  --muted-foreground: oklch(0.65 0.01 260);
-  --accent: oklch(0.22 0.01 260);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.28 0.01 260);
-  --input: oklch(0.28 0.01 260);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.16 0.01 260);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.22 0.01 260);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.28 0.01 260);
-}
-
 html[data-mode="light"] {
-  --background: oklch(0.99 0.002 260);
-  --foreground: oklch(0.21 0.01 260);
+  color-scheme: light;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.21 0.006 265);
   --card: oklch(1 0 0);
-  --card-2: oklch(0.985 0.002 260);
-  --card-foreground: oklch(0.21 0.01 260);
+  --card-2: oklch(0.985 0.0015 265);
+  --card-foreground: oklch(0.21 0.006 265);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.01 260);
-  --secondary: oklch(0.967 0.003 260);
-  --secondary-foreground: oklch(0.25 0.01 260);
-  --muted: oklch(0.967 0.003 260);
-  --muted-foreground: oklch(0.52 0.015 260);
-  --accent: oklch(0.96 0.004 260);
-  --accent-foreground: oklch(0.25 0.01 260);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0.004 260);
-  --input: oklch(0.922 0.004 260);
-  --chart-2: oklch(0.6 0.1 260);
-  --chart-3: oklch(0.7 0.06 260);
-  --chart-4: oklch(0.8 0.04 260);
-  --chart-5: oklch(0.87 0.03 260);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0.002 260);
-  --sidebar-foreground: oklch(0.21 0.01 260);
-  --sidebar-accent: oklch(0.96 0.004 260);
-  --sidebar-accent-foreground: oklch(0.25 0.01 260);
-  --sidebar-border: oklch(0.922 0.004 260);
+  --popover-foreground: oklch(0.21 0.006 265);
+  --secondary: oklch(0.965 0.003 265);
+  --secondary-foreground: oklch(0.26 0.008 265);
+  --muted: oklch(0.967 0.0025 265);
+  --muted-foreground: oklch(0.5 0.012 265);
+  --subtle-foreground: oklch(0.62 0.01 265);
+  --accent: oklch(0.955 0.003 265);
+  --accent-foreground: oklch(0.21 0.006 265);
+  --destructive: oklch(0.56 0.2 26);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.52 0.12 158);
+  --warning: oklch(0.6 0.14 62);
+  --info: oklch(0.53 0.15 252);
+  --border: oklch(0.92 0.004 265);
+  --border-strong: oklch(0.87 0.006 265);
+  --input: oklch(0.885 0.006 265);
+  --chart-2: oklch(0.62 0.12 230);
+  --chart-3: oklch(0.72 0.08 190);
+  --chart-4: oklch(0.8 0.02 265);
+  --chart-5: oklch(0.88 0.01 265);
+  --radius: 0.5rem;
+  --sidebar: oklch(0.982 0.0018 265);
+  --sidebar-foreground: oklch(0.3 0.008 265);
+  --sidebar-accent: oklch(0.94 0.004 265);
+  --sidebar-accent-foreground: oklch(0.18 0.006 265);
+  --sidebar-border: oklch(0.925 0.004 265);
+  --bubble-in: oklch(0.965 0.003 265);
+  --scrollbar: oklch(0.84 0.006 265);
+  --scrollbar-hover: oklch(0.72 0.008 265);
 }
 
-/* ---- ACCENT: primary color ---- */
+html[data-mode="dark"] {
+  color-scheme: dark;
+  --background: oklch(0.165 0.004 265);
+  --foreground: oklch(0.955 0.003 265);
+  --card: oklch(0.19 0.005 265);
+  --card-2: oklch(0.182 0.005 265);
+  --card-foreground: oklch(0.955 0.003 265);
+  --popover: oklch(0.205 0.006 265);
+  --popover-foreground: oklch(0.955 0.003 265);
+  --secondary: oklch(0.235 0.006 265);
+  --secondary-foreground: oklch(0.955 0.003 265);
+  --muted: oklch(0.225 0.006 265);
+  --muted-foreground: oklch(0.68 0.01 265);
+  --subtle-foreground: oklch(0.56 0.01 265);
+  --accent: oklch(0.24 0.006 265);
+  --accent-foreground: oklch(0.955 0.003 265);
+  --destructive: oklch(0.68 0.17 24);
+  --destructive-foreground: oklch(0.18 0.02 24);
+  --success: oklch(0.74 0.13 158);
+  --warning: oklch(0.8 0.13 75);
+  --info: oklch(0.72 0.12 248);
+  --border: oklch(0.265 0.006 265);
+  --border-strong: oklch(0.32 0.007 265);
+  --input: oklch(0.31 0.007 265);
+  --chart-2: oklch(0.7 0.11 230);
+  --chart-3: oklch(0.72 0.08 190);
+  --chart-4: oklch(0.45 0.01 265);
+  --chart-5: oklch(0.34 0.008 265);
+  --radius: 0.5rem;
+  --sidebar: oklch(0.145 0.004 265);
+  --sidebar-foreground: oklch(0.8 0.006 265);
+  --sidebar-accent: oklch(0.225 0.006 265);
+  --sidebar-accent-foreground: oklch(0.97 0.002 265);
+  --sidebar-border: oklch(0.235 0.006 265);
+  --bubble-in: oklch(0.235 0.006 265);
+  --scrollbar: oklch(0.34 0.007 265);
+  --scrollbar-hover: oklch(0.45 0.008 265);
+}
+
+/* ---- ACCENT: primary colour (light values, dark overrides below) ----
+ * Dark mode lifts each accent's lightness so `text-primary` on dark
+ * surfaces keeps a readable contrast. `--primary-soft` is the tint used
+ * for selected rows, active chips and the outbound chat bubble. */
 
 :root,
 html[data-theme="violet"] {
-  --primary: oklch(0.526 0.247 293);
-  --primary-foreground: oklch(0.985 0 0);
-  --primary-hover: oklch(0.6 0.22 293);
-  --primary-soft: oklch(0.526 0.247 293 / 0.12);
-  --primary-soft-2: oklch(0.526 0.247 293 / 0.2);
-  --ring: oklch(0.526 0.247 293);
-  --chart-1: oklch(0.526 0.247 293);
-  --sidebar-primary: oklch(0.526 0.247 293);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-ring: oklch(0.526 0.247 293);
+  --primary: oklch(0.52 0.18 283);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-hover: oklch(0.47 0.18 283);
+  --primary-soft: oklch(0.52 0.18 283 / 0.09);
+  --primary-soft-2: oklch(0.52 0.18 283 / 0.18);
+  --ring: oklch(0.52 0.18 283);
+  --chart-1: oklch(0.55 0.17 283);
+  --sidebar-primary: oklch(0.52 0.18 283);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-ring: oklch(0.52 0.18 283);
+  --bubble-out: oklch(0.955 0.022 283);
+}
+html[data-mode="dark"][data-theme="violet"],
+html[data-mode="dark"]:not([data-theme]) {
+  --primary: oklch(0.62 0.16 283);
+  --primary-hover: oklch(0.67 0.15 283);
+  --primary-soft: oklch(0.62 0.16 283 / 0.14);
+  --primary-soft-2: oklch(0.62 0.16 283 / 0.24);
+  --ring: oklch(0.62 0.16 283);
+  --chart-1: oklch(0.64 0.15 283);
+  --sidebar-primary: oklch(0.62 0.16 283);
+  --sidebar-ring: oklch(0.62 0.16 283);
+  --bubble-out: oklch(0.27 0.045 283);
 }
 
 html[data-theme="emerald"] {
-  --primary: oklch(0.62 0.16 162);
-  --primary-foreground: oklch(0.16 0.02 162);
-  --primary-hover: oklch(0.68 0.15 162);
-  --primary-soft: oklch(0.62 0.16 162 / 0.12);
-  --primary-soft-2: oklch(0.62 0.16 162 / 0.22);
-  --ring: oklch(0.62 0.16 162);
-  --chart-1: oklch(0.62 0.16 162);
-  --chart-2: oklch(0.7 0.14 195);
-  --sidebar-primary: oklch(0.62 0.16 162);
-  --sidebar-primary-foreground: oklch(0.16 0.02 162);
-  --sidebar-ring: oklch(0.62 0.16 162);
+  --primary: oklch(0.54 0.12 162);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-hover: oklch(0.49 0.12 162);
+  --primary-soft: oklch(0.54 0.12 162 / 0.1);
+  --primary-soft-2: oklch(0.54 0.12 162 / 0.2);
+  --ring: oklch(0.54 0.12 162);
+  --chart-1: oklch(0.56 0.12 162);
+  --sidebar-primary: oklch(0.54 0.12 162);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-ring: oklch(0.54 0.12 162);
+  --bubble-out: oklch(0.955 0.025 162);
+}
+html[data-mode="dark"][data-theme="emerald"] {
+  --primary: oklch(0.68 0.13 162);
+  --primary-foreground: oklch(0.17 0.02 162);
+  --primary-hover: oklch(0.73 0.12 162);
+  --primary-soft: oklch(0.68 0.13 162 / 0.14);
+  --primary-soft-2: oklch(0.68 0.13 162 / 0.24);
+  --ring: oklch(0.68 0.13 162);
+  --chart-1: oklch(0.68 0.13 162);
+  --sidebar-primary: oklch(0.68 0.13 162);
+  --sidebar-primary-foreground: oklch(0.17 0.02 162);
+  --sidebar-ring: oklch(0.68 0.13 162);
+  --bubble-out: oklch(0.27 0.045 162);
 }
 
 html[data-theme="cobalt"] {
-  --primary: oklch(0.585 0.2 254);
-  --primary-foreground: oklch(0.985 0 0);
-  --primary-hover: oklch(0.66 0.18 254);
-  --primary-soft: oklch(0.585 0.2 254 / 0.12);
-  --primary-soft-2: oklch(0.585 0.2 254 / 0.22);
-  --ring: oklch(0.585 0.2 254);
-  --chart-1: oklch(0.585 0.2 254);
-  --chart-2: oklch(0.7 0.15 220);
-  --sidebar-primary: oklch(0.585 0.2 254);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-ring: oklch(0.585 0.2 254);
+  --primary: oklch(0.53 0.17 256);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-hover: oklch(0.48 0.17 256);
+  --primary-soft: oklch(0.53 0.17 256 / 0.09);
+  --primary-soft-2: oklch(0.53 0.17 256 / 0.18);
+  --ring: oklch(0.53 0.17 256);
+  --chart-1: oklch(0.56 0.16 256);
+  --sidebar-primary: oklch(0.53 0.17 256);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-ring: oklch(0.53 0.17 256);
+  --bubble-out: oklch(0.955 0.022 256);
+}
+html[data-mode="dark"][data-theme="cobalt"] {
+  --primary: oklch(0.64 0.15 256);
+  --primary-hover: oklch(0.69 0.14 256);
+  --primary-soft: oklch(0.64 0.15 256 / 0.14);
+  --primary-soft-2: oklch(0.64 0.15 256 / 0.24);
+  --ring: oklch(0.64 0.15 256);
+  --chart-1: oklch(0.66 0.14 256);
+  --sidebar-primary: oklch(0.64 0.15 256);
+  --sidebar-ring: oklch(0.64 0.15 256);
+  --bubble-out: oklch(0.27 0.045 256);
 }
 
 html[data-theme="amber"] {
-  --primary: oklch(0.745 0.16 65);
-  --primary-foreground: oklch(0.18 0.03 65);
-  --primary-hover: oklch(0.8 0.15 65);
-  --primary-soft: oklch(0.745 0.16 65 / 0.12);
-  --primary-soft-2: oklch(0.745 0.16 65 / 0.22);
-  --ring: oklch(0.745 0.16 65);
-  --chart-1: oklch(0.745 0.16 65);
-  --chart-2: oklch(0.7 0.15 35);
-  --sidebar-primary: oklch(0.745 0.16 65);
-  --sidebar-primary-foreground: oklch(0.18 0.03 65);
-  --sidebar-ring: oklch(0.745 0.16 65);
+  --primary: oklch(0.62 0.15 58);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-hover: oklch(0.57 0.15 58);
+  --primary-soft: oklch(0.62 0.15 58 / 0.1);
+  --primary-soft-2: oklch(0.62 0.15 58 / 0.2);
+  --ring: oklch(0.62 0.15 58);
+  --chart-1: oklch(0.66 0.15 62);
+  --sidebar-primary: oklch(0.62 0.15 58);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-ring: oklch(0.62 0.15 58);
+  --bubble-out: oklch(0.96 0.028 70);
+}
+html[data-mode="dark"][data-theme="amber"] {
+  --primary: oklch(0.76 0.14 68);
+  --primary-foreground: oklch(0.2 0.03 60);
+  --primary-hover: oklch(0.8 0.13 68);
+  --primary-soft: oklch(0.76 0.14 68 / 0.14);
+  --primary-soft-2: oklch(0.76 0.14 68 / 0.24);
+  --ring: oklch(0.76 0.14 68);
+  --chart-1: oklch(0.76 0.14 68);
+  --sidebar-primary: oklch(0.76 0.14 68);
+  --sidebar-primary-foreground: oklch(0.2 0.03 60);
+  --sidebar-ring: oklch(0.76 0.14 68);
+  --bubble-out: oklch(0.28 0.04 68);
 }
 
 html[data-theme="rose"] {
-  --primary: oklch(0.645 0.22 16);
-  --primary-foreground: oklch(0.985 0 0);
-  --primary-hover: oklch(0.71 0.2 16);
-  --primary-soft: oklch(0.645 0.22 16 / 0.12);
-  --primary-soft-2: oklch(0.645 0.22 16 / 0.22);
-  --ring: oklch(0.645 0.22 16);
-  --chart-1: oklch(0.645 0.22 16);
-  --chart-2: oklch(0.7 0.18 340);
-  --sidebar-primary: oklch(0.645 0.22 16);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-ring: oklch(0.645 0.22 16);
+  --primary: oklch(0.57 0.19 14);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-hover: oklch(0.52 0.19 14);
+  --primary-soft: oklch(0.57 0.19 14 / 0.09);
+  --primary-soft-2: oklch(0.57 0.19 14 / 0.18);
+  --ring: oklch(0.57 0.19 14);
+  --chart-1: oklch(0.6 0.18 14);
+  --sidebar-primary: oklch(0.57 0.19 14);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-ring: oklch(0.57 0.19 14);
+  --bubble-out: oklch(0.96 0.02 14);
+}
+html[data-mode="dark"][data-theme="rose"] {
+  --primary: oklch(0.67 0.17 14);
+  --primary-hover: oklch(0.72 0.16 14);
+  --primary-soft: oklch(0.67 0.17 14 / 0.14);
+  --primary-soft-2: oklch(0.67 0.17 14 / 0.24);
+  --ring: oklch(0.67 0.17 14);
+  --chart-1: oklch(0.68 0.16 14);
+  --sidebar-primary: oklch(0.67 0.17 14);
+  --sidebar-ring: oklch(0.67 0.17 14);
+  --bubble-out: oklch(0.27 0.04 14);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    @apply font-sans;
+    /* Inter alternates: open 4/6/9 and a single-storey a — reads as a
+     * product UI face rather than the stock Inter look. */
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
   body {
     @apply bg-background text-foreground;
   }
-  html {
-    @apply font-sans;
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.011em;
+  }
+  ::selection {
+    background-color: var(--primary-soft-2);
+  }
+  /* Thin, theme-aware scrollbars everywhere. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-hover);
+  }
+  /* Native form controls that aren't wrapped in a primitive (date
+   * pickers, file inputs) inherit the app's type. */
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+  }
+  [data-slot="kbd"],
+  kbd {
+    font-family: var(--font-sans);
+    font-feature-settings: normal;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Chevron for styled native <select> elements (see
+   * components/ui/native-select.tsx). A neutral mid-grey that reads in
+   * both modes. */
+  .native-select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b8f98' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 14px 14px;
+  }
+}
+
+@layer utilities {
+  /* Hides a scroll container's bar while keeping it scrollable (tab
+   * strips, horizontal chip rows). */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }

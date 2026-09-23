@@ -95,8 +95,8 @@ export function Step4ScheduleSend({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-foreground">{t('scheduleSend.title')}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h2 className="text-[15px] font-semibold text-foreground">{t('scheduleSend.title')}</h2>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">
           {t('scheduleSend.subtitle')}
         </p>
       </div>
@@ -108,12 +108,11 @@ export function Step4ScheduleSend({
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           placeholder={t('scheduleSend.broadcastNamePlaceholder')}
-          className="border-border bg-muted text-foreground placeholder:text-muted-foreground"
         />
       </div>
 
       {/* Summary Card */}
-      <div className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
+      <div className="rounded-md border border-border bg-card-2 p-3.5 space-y-3">
         <p className="text-sm font-medium text-foreground">{t('scheduleSend.summary')}</p>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
@@ -128,10 +127,10 @@ export function Step4ScheduleSend({
             <p className="text-xs text-muted-foreground">{t('scheduleSend.estimatedReach')}</p>
             <div className="flex items-center gap-1.5">
               {loadingReach ? (
-                <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
               ) : (
                 <>
-                  <Users className="h-3.5 w-3.5 text-primary" />
+                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
                   <p className="font-medium text-foreground">{estimatedReach.toLocaleString()}</p>
                 </>
               )}
@@ -146,10 +145,10 @@ export function Step4ScheduleSend({
 
       {/* Processing overlay */}
       {isProcessing && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <Loader2 className="size-4 animate-spin text-muted-foreground" />
               <p className="text-sm font-medium text-foreground">{t('scheduleSend.sending')}</p>
             </div>
             <span className="text-xs font-medium text-primary">{progress}%</span>
@@ -168,7 +167,6 @@ export function Step4ScheduleSend({
           variant="outline"
           onClick={onBack}
           disabled={isProcessing}
-          className="border-border text-muted-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           {t('back')}
@@ -180,7 +178,6 @@ export function Step4ScheduleSend({
               variant="outline"
               onClick={onSaveDraft}
               disabled={!name.trim() || isProcessing}
-              className="border-border text-muted-foreground hover:bg-muted disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
               {t('scheduleSend.saveDraft')}
@@ -192,17 +189,16 @@ export function Step4ScheduleSend({
             render={
               <Button
                 disabled={!name.trim() || isProcessing}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               />
             }
           >
             <Send className="h-4 w-4" />
             {t('scheduleSend.sendNow')}
           </DialogTrigger>
-          <DialogContent className="border-border bg-popover sm:max-w-md">
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-popover-foreground">{t('scheduleSend.confirmTitle')}</DialogTitle>
-              <DialogDescription className="text-muted-foreground">
+              <DialogTitle>{t('scheduleSend.confirmTitle')}</DialogTitle>
+              <DialogDescription>
                 {t.rich('scheduleSend.confirmDesc', {
                   count: estimatedReach,
                   template: template.name,
@@ -216,7 +212,6 @@ export function Step4ScheduleSend({
               <Button
                 variant="outline"
                 onClick={() => setShowConfirm(false)}
-                className="border-border text-muted-foreground"
               >
                 {t('cancel')}
               </Button>
@@ -225,7 +220,6 @@ export function Step4ScheduleSend({
                   setShowConfirm(false);
                   onSend();
                 }}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 <Send className="h-4 w-4" />
                 {t('scheduleSend.sendNow')}

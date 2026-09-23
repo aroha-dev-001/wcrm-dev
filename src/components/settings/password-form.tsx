@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, KeyRound } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -85,11 +85,10 @@ export function PasswordForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-foreground">
-          <KeyRound className="size-4 text-primary" />
+        <CardTitle className="flex items-center gap-2">
           {t('passwordTitle')}
         </CardTitle>
-        <CardDescription className="text-muted-foreground">
+        <CardDescription>
           {t('passwordDesc', { min: MIN_PASSWORD })}
         </CardDescription>
       </CardHeader>

@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { Bot, RotateCcw, Send, Loader2, UserCircle2, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { fieldClasses } from '@/components/ui/input';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 
 interface Turn {
@@ -82,13 +84,12 @@ export function AiPlayground({ onGoToSetup }: { onGoToSetup?: () => void }) {
   };
 
   return (
-    <div className="flex h-[60vh] min-h-[420px] flex-col rounded-xl border border-border bg-card">
+    <div className="flex h-[calc(100dvh-13rem)] min-h-[420px] flex-col overflow-hidden rounded-lg border border-border bg-card">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Bot className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium text-foreground">{t('title')}</span>
-          <span className="text-xs text-muted-foreground">
+      <div className="flex min-h-11 items-center justify-between gap-3 border-b border-border px-4 py-2">
+        <div className="min-w-0">
+          <span className="block text-[13px] font-semibold text-foreground">{t('title')}</span>
+          <span className="block truncate text-xs text-muted-foreground">
             {t('subtitle')}
           </span>
         </div>
@@ -97,32 +98,27 @@ export function AiPlayground({ onGoToSetup }: { onGoToSetup?: () => void }) {
           size="sm"
           onClick={() => setTurns([])}
           disabled={turns.length === 0 || sending}
-          className="text-muted-foreground"
         >
-          <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> {t('reset')}
+          <RotateCcw /> {t('reset')}
         </Button>
       </div>
 
       {/* Transcript */}
-      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
+      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto bg-card-2 p-4">
         {turns.length === 0 && (
-          <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground">
-            <Bot className="mb-2 h-8 w-8 text-muted-foreground/60" />
-            <p>{t('emptyTitle')}</p>
-            <p className="mt-1 text-xs">
-              {t('emptyDesc')}
-            </p>
-            {onGoToSetup && (
-              <Button
-                variant="link"
-                size="sm"
-                onClick={onGoToSetup}
-                className="mt-1 h-auto p-0 text-xs"
-              >
-                {t('goToSetup')} <ArrowRight className="ml-1 h-3 w-3" />
-              </Button>
-            )}
-          </div>
+          <EmptyState
+            icon={Bot}
+            title={t('emptyTitle')}
+            description={t('emptyDesc')}
+            className="h-full"
+            action={
+              onGoToSetup ? (
+                <Button variant="outline" size="sm" onClick={onGoToSetup}>
+                  {t('goToSetup')} <ArrowRight />
+                </Button>
+              ) : undefined
+            }
+          />
         )}
 
         {turns.map((turn, i) => (
@@ -134,21 +130,23 @@ export function AiPlayground({ onGoToSetup }: { onGoToSetup?: () => void }) {
             )}
           >
             {turn.role === 'assistant' && (
-              <Bot className="mt-1 h-5 w-5 shrink-0 text-primary" />
+              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground">
+                <Bot className="size-3.5" />
+              </span>
             )}
             <div
               className={cn(
-                'max-w-[80%] rounded-2xl px-3.5 py-2 text-sm',
+                'max-w-[80%] rounded-xl px-3 py-2 text-[13px] text-foreground',
                 turn.role === 'user'
-                  ? 'rounded-br-sm bg-primary text-primary-foreground'
-                  : 'rounded-bl-sm bg-muted text-foreground',
+                  ? 'rounded-br-sm border border-primary/12 bg-bubble-out'
+                  : 'rounded-bl-sm border border-border bg-card shadow-xs',
               )}
             >
               {turn.content && <p className="whitespace-pre-wrap">{turn.content}</p>}
               {turn.role === 'assistant' && turn.handoff && (
                 <p
                   className={cn(
-                    'flex items-center gap-1 text-xs text-amber-500',
+                    'flex items-center gap-1 text-xs text-warning',
                     turn.content && 'mt-1.5 border-t border-border/50 pt-1.5',
                   )}
                 >
@@ -157,16 +155,13 @@ export function AiPlayground({ onGoToSetup }: { onGoToSetup?: () => void }) {
                 </p>
               )}
             </div>
-            {turn.role === 'user' && (
-              <UserCircle2 className="mt-1 h-5 w-5 shrink-0 text-muted-foreground" />
-            )}
+
           </div>
         ))}
 
         {sending && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Bot className="h-5 w-5 text-primary" />
-            <Loader2 className="h-4 w-4 animate-spin" /> {t('thinking')}
+          <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" /> {t('thinking')}
           </div>
         )}
       </div>
@@ -178,19 +173,20 @@ export function AiPlayground({ onGoToSetup }: { onGoToSetup?: () => void }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={t('placeholder')}
+          aria-label={t('placeholder')}
           rows={1}
-          className="flex-1 resize-none rounded-xl border border-border bg-muted px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-primary/50"
+          className={cn(fieldClasses, 'min-h-9 flex-1 resize-none px-3 py-2 text-base md:text-[13px]')}
         />
         <Button
-          size="sm"
+          size="icon-lg"
           onClick={send}
           disabled={!input.trim() || sending}
-          className="h-9 w-9 shrink-0 p-0"
+          aria-label={t('send')}
         >
           {sending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="animate-spin" />
           ) : (
-            <Send className="h-4 w-4" />
+            <Send />
           )}
         </Button>
       </div>

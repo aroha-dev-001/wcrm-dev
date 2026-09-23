@@ -14,10 +14,10 @@ import { cn } from '@/lib/utils';
 export type ChipVariant = 'owner' | 'admin' | 'ok' | 'warn' | 'muted';
 
 const VARIANTS: Record<ChipVariant, string> = {
-  owner: 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300',
-  admin: 'border-primary-soft-2 bg-primary-soft text-primary',
-  ok: 'border-emerald-500/35 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300',
-  warn: 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300',
+  owner: 'border-warning/30 bg-warning/10 text-warning',
+  admin: 'border-primary/25 bg-primary-soft text-primary',
+  ok: 'border-success/25 bg-success/10 text-success',
+  warn: 'border-warning/30 bg-warning/10 text-warning',
   muted: 'border-border bg-muted text-muted-foreground',
 };
 
@@ -33,7 +33,7 @@ export function SettingsChip({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap [&_svg]:size-3.5',
+        'inline-flex h-5 items-center gap-1 rounded-[5px] border px-1.5 text-[11px] font-medium whitespace-nowrap [&_svg]:size-3',
         VARIANTS[variant],
         className,
       )}
@@ -56,7 +56,7 @@ export function StatusDot({
       aria-hidden
       className={cn(
         'inline-block size-1.5 shrink-0 rounded-full',
-        tone === 'ok' ? 'bg-emerald-500' : 'bg-muted-foreground',
+        tone === 'ok' ? 'bg-success' : 'bg-muted-foreground',
         className,
       )}
     />

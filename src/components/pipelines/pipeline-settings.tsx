@@ -201,17 +201,17 @@ export function PipelineSettings({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-popover border-border max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-popover-foreground">{t("managePipeline")}</DialogTitle>
+          <DialogTitle>{t("managePipeline")}</DialogTitle>
         </DialogHeader>
 
         {showDeleteConfirm ? (
           <div className="py-4">
-            <div className="flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
-              <AlertTriangle className="h-5 w-5 shrink-0 text-red-400" />
+            <div className="flex items-start gap-3 rounded-md border border-destructive/25 bg-destructive/6 p-3">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
               <div>
-                <p className="text-sm font-medium text-red-400">
+                <p className="text-[13px] font-medium text-destructive">
                   {t("deletePipeline")}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -223,14 +223,13 @@ export function PipelineSettings({
               <Button
                 variant="outline"
                 onClick={() => setShowDeleteConfirm(false)}
-                className="border-border bg-transparent text-muted-foreground hover:bg-muted"
               >
                 {t("cancel")}
               </Button>
               <Button
+                variant="destructive"
                 onClick={handleDeletePipeline}
                 disabled={deleting}
-                className="bg-red-600 text-white hover:bg-red-700"
               >
                 {deleting ? t("deleting") : t("deletePipelineBtn")}
               </Button>
@@ -238,18 +237,18 @@ export function PipelineSettings({
           </div>
         ) : (
           <>
-            <div className="grid gap-4 py-2">
-              <div className="grid gap-2">
-                <Label className="text-muted-foreground">{t("pipelineName")}</Label>
+            <div className="grid gap-5">
+              <div className="grid gap-1.5">
+                <Label htmlFor="pipeline-name">{t("pipelineName")}</Label>
                 <Input
+                  id="pipeline-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="border-border bg-muted text-foreground"
                 />
               </div>
 
               <div className="grid gap-2">
-                <Label className="text-muted-foreground">{t("stages")}</Label>
+                <Label>{t("stages")}</Label>
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -259,7 +258,7 @@ export function PipelineSettings({
                     items={localStages.map((s) => s.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    <div className="space-y-2">
+                    <div className="divide-y divide-border overflow-hidden rounded-md border border-border">
                       {localStages.map((stage, index) => (
                         <SortableStageRow
                           key={stage.id}
@@ -284,21 +283,22 @@ export function PipelineSettings({
                 </DndContext>
 
                 {/* Add new stage */}
-                <div className="mt-1 flex flex-wrap gap-1">
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {STAGE_COLORS.map((color) => (
                     <button
                       key={color}
                       type="button"
                       onClick={() => setNewStageColor(color)}
-                      className="h-5 w-5 rounded-full border-2 transition-transform hover:scale-110"
+                      className="size-5 cursor-pointer rounded-full ring-offset-2 ring-offset-popover transition-shadow"
                       style={{
                         backgroundColor: color,
-                        borderColor:
+                        boxShadow:
                           newStageColor === color
-                            ? "var(--foreground)"
-                            : "transparent",
+                            ? "0 0 0 2px var(--popover), 0 0 0 4px var(--foreground)"
+                            : undefined,
                       }}
                       aria-label={`Pick color ${color}`}
+                      aria-pressed={newStageColor === color}
                     />
                   ))}
                 </div>
@@ -307,7 +307,6 @@ export function PipelineSettings({
                     value={newStageName}
                     onChange={(e) => setNewStageName(e.target.value)}
                     placeholder={t("newStageNamePlaceholder")}
-                    className="border-border bg-muted text-sm text-foreground"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleAddStage();
                     }}
@@ -317,42 +316,42 @@ export function PipelineSettings({
                     size="sm"
                     onClick={handleAddStage}
                     disabled={!newStageName.trim()}
-                    className="shrink-0 border-border bg-transparent text-muted-foreground hover:bg-muted"
+                    className="shrink-0"
                   >
-                    <Plus className="mr-1 h-3 w-3" />
+                    <Plus />
                     {t("add")}
                   </Button>
                 </div>
               </div>
 
               <Button
-                variant="outline"
+                variant="ghost"
+                size="sm"
                 onClick={onCreateNewPipeline}
-                className="w-full border-border bg-transparent text-muted-foreground hover:bg-muted"
+                className="justify-self-start"
               >
-                <Plus className="mr-1 h-3 w-3" />
+                <Plus />
                 {t("createNewPipeline")}
               </Button>
             </div>
 
-            <DialogFooter className="border-border bg-popover/50">
+            <DialogFooter>
               <Button
+                variant="ghost"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="mr-auto bg-red-600 text-white hover:bg-red-700"
+                className="text-destructive hover:bg-destructive/8 hover:text-destructive sm:mr-auto"
               >
                 {t("deletePipeline")}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-border bg-transparent text-muted-foreground hover:bg-muted"
               >
                 {t("cancel")}
               </Button>
               <Button
                 onClick={handleSave}
                 disabled={saving || !name.trim()}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {saving ? t("saving") : t("saveChanges")}
               </Button>
@@ -393,7 +392,7 @@ function SortableStageRow({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-2 rounded-lg border border-border bg-muted p-2"
+      className="flex items-center gap-2 bg-card px-2 py-1.5"
     >
       <button
         type="button"
@@ -408,15 +407,16 @@ function SortableStageRow({
       <Input
         value={stage.name}
         onChange={(e) => onNameChange(e.target.value)}
-        className="h-7 flex-1 border-transparent bg-transparent text-sm text-foreground focus:border-border"
+        className="h-7 flex-1 border-transparent shadow-none hover:border-input focus-visible:border-ring dark:bg-transparent"
       />
       <Button
         variant="ghost"
         size="icon-xs"
         onClick={onRemove}
-        className="text-muted-foreground hover:text-red-400"
+        className="hover:text-destructive"
+        aria-label={t("deleteStage")}
       >
-        <Trash2 className="h-3 w-3" />
+        <Trash2 className="size-3.5" />
       </Button>
     </div>
   );
@@ -440,14 +440,14 @@ function ColorSwatch({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="h-4 w-4 rounded-full border border-border"
+        className="size-4 cursor-pointer rounded-full ring-1 ring-foreground/10"
         style={{ backgroundColor: value }}
         aria-label={t("changeColor")}
       />
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-6 z-20 flex flex-wrap gap-1 rounded-lg border border-border bg-popover p-2 shadow-lg w-36">
+          <div className="absolute top-6 left-0 z-20 flex w-36 flex-wrap gap-1.5 rounded-lg bg-popover p-2 shadow-popover">
             {colors.map((c) => (
               <button
                 key={c}
@@ -456,11 +456,13 @@ function ColorSwatch({
                   onChange(c);
                   setOpen(false);
                 }}
-                className="h-5 w-5 rounded-full border-2 transition-transform hover:scale-110"
+                className="size-5 cursor-pointer rounded-full"
                 style={{
                   backgroundColor: c,
-                  borderColor:
-                    c === value ? "var(--foreground)" : "transparent",
+                  boxShadow:
+                    c === value
+                      ? "0 0 0 2px var(--popover), 0 0 0 4px var(--foreground)"
+                      : undefined,
                 }}
               />
             ))}

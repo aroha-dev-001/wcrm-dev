@@ -180,15 +180,15 @@ export function InviteMemberDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent className="bg-popover border-border sm:max-w-md">
+      <DialogContent className="sm:max-w-md">
         {result ? (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-popover-foreground">
-                <Sparkles className="size-4 text-primary" />
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="size-4 text-muted-foreground" />
                 {t('inviteCreated')}
               </DialogTitle>
-              <DialogDescription className="text-muted-foreground">
+              <DialogDescription>
                 {t.rich('inviteCreatedDesc', {
                   role: tRoles(result.role),
                   days: result.expiresInDays,
@@ -198,18 +198,18 @@ export function InviteMemberDialog({
             </DialogHeader>
 
             <div className="space-y-3 py-2">
-              <Label className="text-muted-foreground">{t('inviteLink')}</Label>
+              <Label>{t('inviteLink')}</Label>
               <div className="flex gap-2">
                 <Input
                   readOnly
                   value={result.url}
-                  className="bg-muted border-border text-foreground font-mono text-xs"
+                  className="font-mono text-xs"
                   onFocus={(e) => e.currentTarget.select()}
                 />
                 <Button
                   type="button"
                   onClick={copyToClipboard}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0"
+                  className="shrink-0"
                 >
                   <Copy className="size-4" />
                   {t('copy')}
@@ -221,8 +221,8 @@ export function InviteMemberDialog({
                   text (target ratio 7:1). Border bumped to /50, bg to
                   /15, foreground promoted to amber-100 for the strong
                   intro, amber-200 for the body. */}
-              <div className="rounded-md border border-amber-500/50 bg-amber-500/15 px-3 py-2 text-xs text-amber-200">
-                <strong className="font-semibold text-amber-100">
+              <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+                <strong className="font-semibold text-warning">
                   {t('saveLinkNow')}
                 </strong>{' '}
                 {t('saveLinkHint')}
@@ -248,10 +248,9 @@ export function InviteMemberDialog({
               </a>
             </div>
 
-            <DialogFooter className="bg-popover border-border">
+            <DialogFooter>
               <Button
                 onClick={() => onOpenChange(false)}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {t('done')}
               </Button>
@@ -260,20 +259,20 @@ export function InviteMemberDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="text-popover-foreground">{t('dialogTitle')}</DialogTitle>
-              <DialogDescription className="text-muted-foreground">
+              <DialogTitle>{t('dialogTitle')}</DialogTitle>
+              <DialogDescription>
                 {t('dialogDesc')}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label className="text-muted-foreground">{t('roleLabel')}</Label>
+                <Label>{t('roleLabel')}</Label>
                 <Select
                   value={role}
                   onValueChange={(v) => v && setRole(v as InviteRole)}
                 >
-                  <SelectTrigger className="w-full bg-muted border-border text-foreground">
+                  <SelectTrigger className="w-full">
                     <SelectValue>{tRoles(role)}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -288,12 +287,12 @@ export function InviteMemberDialog({
               </div>
 
               <div className="space-y-2">
-                <Label className="text-muted-foreground">{t('validForLabel')}</Label>
+                <Label>{t('validForLabel')}</Label>
                 <Select
                   value={expiry}
                   onValueChange={(v) => v && setExpiry(v)}
                 >
-                  <SelectTrigger className="w-full bg-muted border-border text-foreground">
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -307,7 +306,7 @@ export function InviteMemberDialog({
               </div>
 
               <div className="space-y-2">
-                <Label className="text-muted-foreground">
+                <Label>
                   {t('labelTitle')}{' '}
                   <span className="text-xs text-muted-foreground">{t('optional')}</span>
                 </Label>
@@ -316,7 +315,6 @@ export function InviteMemberDialog({
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
                   maxLength={MAX_LABEL_LEN}
-                  className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
                 />
                 <p className="text-xs text-muted-foreground">
                   {t('labelHint')}
@@ -324,18 +322,16 @@ export function InviteMemberDialog({
               </div>
             </div>
 
-            <DialogFooter className="bg-popover border-border">
+            <DialogFooter>
               <Button
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-border text-muted-foreground hover:bg-muted"
               >
                 {t('cancel')}
               </Button>
               <Button
                 onClick={handleCreate}
                 disabled={submitting}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {submitting ? (
                   <>

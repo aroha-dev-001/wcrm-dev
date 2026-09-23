@@ -3,7 +3,7 @@
  *
  * The DB stores Meta's raw enum (DRAFT / APPROVED / PENDING / REJECTED /
  * PAUSED / DISABLED / IN_APPEAL / PENDING_DELETION) — the UI maps it to
- * a human label + dark-theme badge classes here so the template manager,
+ * a human label + semantic badge classes here so the template manager,
  * inbox picker, and broadcast picker stay aligned.
  */
 
@@ -20,34 +20,34 @@ export const templateStatusConfig: Record<
 > = {
   DRAFT: {
     label: 'Draft',
-    classes: 'bg-slate-600/20 text-muted-foreground border-slate-600/30',
+    classes: 'border-border bg-muted text-muted-foreground',
   },
   PENDING: {
     label: 'Pending',
-    classes: 'bg-yellow-600/20 text-yellow-400 border-yellow-600/30',
+    classes: 'border-warning/30 bg-warning/10 text-warning',
   },
   APPROVED: {
     label: 'Approved',
-    classes: 'bg-primary/20 text-primary border-primary/30',
+    classes: 'border-success/25 bg-success/10 text-success',
   },
   REJECTED: {
     label: 'Rejected',
-    classes: 'bg-red-600/20 text-red-400 border-red-600/30',
+    classes: 'border-destructive/25 bg-destructive/10 text-destructive',
   },
   PAUSED: {
     label: 'Paused',
-    classes: 'bg-orange-600/20 text-orange-400 border-orange-600/30',
+    classes: 'border-warning/30 bg-warning/10 text-warning',
   },
   DISABLED: {
     label: 'Disabled',
-    classes: 'bg-red-900/30 text-red-500 border-red-900/40',
+    classes: 'border-destructive/25 bg-destructive/10 text-destructive',
   },
   IN_APPEAL: {
     label: 'In Appeal',
-    classes: 'bg-blue-600/20 text-blue-400 border-blue-600/30',
+    classes: 'border-info/25 bg-info/10 text-info',
   },
   PENDING_DELETION: {
     label: 'Pending Deletion',
-    classes: 'bg-slate-700/30 text-muted-foreground border-slate-700/40',
+    classes: 'border-border bg-muted text-muted-foreground',
   },
 };

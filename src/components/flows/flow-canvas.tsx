@@ -161,19 +161,19 @@ function FlowNodeCard({ data, selected }: NodeProps) {
           '--nc-text': c.text,
           borderColor: selected ? c.solid : undefined,
           boxShadow: selected
-            ? `0 0 0 1px ${c.solid}, 0 14px 36px -12px ${c.ring}`
+            ? `0 0 0 1px ${c.solid}, 0 4px 12px -4px oklch(0 0 0 / 0.18)`
             : undefined,
         } as React.CSSProperties
       }
       className={cn(
-        'bg-card relative max-w-[260px] min-w-[220px] rounded-xl border px-3.5 py-3 text-left shadow-[0_2px_6px_rgba(0,0,0,0.18)] transition-[box-shadow,border-color]',
+        'bg-card relative max-w-[260px] min-w-[220px] rounded-lg border px-3.5 py-3 text-left shadow-xs transition-[box-shadow,border-color]',
         selected
           ? 'border-[var(--nc)]'
           : 'border-border hover:border-[var(--nc-ring)]',
         // Flash overrides hover/selected colors briefly. Tailwind's
         // built-in `animate-pulse` is too gentle; a ring with the
         // amber accent matches the list view's flash semantics.
-        isFlashed && '!border-amber-400 ring-2 ring-amber-400/60'
+        isFlashed && '!border-warning/40 ring-2 ring-warning/40'
       )}
     >
       {hasTarget && (
@@ -555,7 +555,7 @@ function FlowCanvasInner() {
             color="var(--border)"
           />
           <Controls
-            className="!border-border !bg-card [&_button]:!border-border [&_button]:!bg-card [&_button:hover]:!bg-muted [&_button_svg]:!fill-foreground !overflow-hidden !rounded-xl !border !shadow-[0_6px_20px_-8px_rgba(0,0,0,0.5)]"
+            className="!border-border !bg-card [&_button]:!border-border [&_button]:!bg-card [&_button:hover]:!bg-muted [&_button_svg]:!fill-foreground !overflow-hidden !rounded-lg !border !shadow-sm"
             showInteractive={false}
           />
           <MiniMap
@@ -567,7 +567,7 @@ function FlowCanvasInner() {
             nodeStrokeWidth={0}
             nodeBorderRadius={3}
             maskColor="color-mix(in oklch, var(--background) 70%, transparent)"
-            className="!border-border !bg-card !rounded-xl !border !shadow-[0_6px_20px_-8px_rgba(0,0,0,0.5)]"
+            className="!border-border !bg-card !rounded-lg !border !shadow-sm"
           />
           <Panel position="top-left" className="!top-4 !left-4">
             <CanvasAddNodeButton t={t} />
@@ -630,7 +630,7 @@ function NodeEditSheet({
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent
         side="right"
-        className="border-border bg-popover flex w-full flex-col gap-0 border-l p-0 sm:max-w-md"
+        className="flex w-full flex-col gap-0 border-l p-0 sm:max-w-md"
       >
         <SheetHeader className="border-border flex-row items-center gap-3 space-y-0 border-b px-5 py-4">
           <NodeIconChip type={node.node_type} size={36} iconSize={18} />
@@ -638,12 +638,12 @@ function NodeEditSheet({
             <SheetTitle className="flex items-center gap-2 text-[11px] font-semibold tracking-wider uppercase">
               <span style={{ color: c.text }}>{t(`nodes.${node.node_type}.label`)}</span>
               {isEntry && (
-                <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider text-emerald-300 uppercase">
+                <span className="rounded bg-success/10 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider text-success uppercase">
                   {t('badgeEntry')}
                 </span>
               )}
             </SheetTitle>
-            <SheetDescription className="text-muted-foreground mt-0.5 text-xs">
+            <SheetDescription className="mt-0.5 text-xs">
               {t(`nodes.${node.node_type}.blurb`)}
             </SheetDescription>
           </div>
@@ -673,7 +673,7 @@ function NodeEditSheet({
             variant="ghost"
             size="sm"
             onClick={onDelete}
-            className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
           >
             <Trash2 className="h-3.5 w-3.5" />
             {t('deleteNode')}
@@ -735,7 +735,7 @@ function CanvasAddNodeButton({ t }: { t: ReturnType<typeof useTranslations> }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="bg-primary text-primary-foreground hover:bg-primary-hover inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-medium shadow-[0_6px_20px_-8px_rgba(0,0,0,0.5)] transition-colors"
+        className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-3 text-[13px] font-medium text-foreground shadow-sm transition-colors hover:bg-accent data-popup-open:bg-accent dark:bg-card"
         aria-label={t('addNode')}
       >
         <Plus className="h-4 w-4" />
@@ -743,7 +743,7 @@ function CanvasAddNodeButton({ t }: { t: ReturnType<typeof useTranslations> }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="border-border bg-popover w-[268px] p-1.5"
+        className="w-[268px] p-1.5"
       >
         {groupNodeTypesByCategory(ADD_NODE_TYPES).map((group, i) => (
           // DropdownMenuGroup (base-ui Menu.Group) is REQUIRED: the
@@ -753,7 +753,7 @@ function CanvasAddNodeButton({ t }: { t: ReturnType<typeof useTranslations> }) {
           <Fragment key={group.id}>
             {i > 0 && <DropdownMenuSeparator />}
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="text-muted-foreground px-2 py-1.5 text-[11px] font-semibold tracking-wider uppercase">
+              <DropdownMenuLabel>
                 {t(`categories.${group.id}`)}
               </DropdownMenuLabel>
               {group.types.map((t_type) => {

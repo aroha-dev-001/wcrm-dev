@@ -53,11 +53,10 @@ export function SessionsCard() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-foreground">
-            <LogOut className="size-4 text-primary" />
+          <CardTitle className="flex items-center gap-2">
             {t('sessionsTitle')}
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription>
             {t('sessionsDesc')}
           </CardDescription>
         </CardHeader>

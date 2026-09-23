@@ -73,6 +73,7 @@ import {
 } from "@/lib/automations/builder-tree"
 import { cn } from "@/lib/utils"
 
+import { nativeSelectClass } from "@/components/ui/native-select"
 // ------------------------------------------------------------
 // Types (builder-local — mirror the flattened rows we POST)
 // ------------------------------------------------------------
@@ -117,7 +118,7 @@ const STEP_META: Record<AutomationStepType, StepMeta> = {
   update_contact_field: { label: "update_contact_field", icon: PencilLine, border: "border-l-primary" },
   create_deal: { label: "create_deal", icon: Briefcase, border: "border-l-primary" },
   wait: { label: "wait", icon: Hourglass, border: "border-l-border" },
-  condition: { label: "condition", icon: GitBranch, border: "border-l-amber-500" },
+  condition: { label: "condition", icon: GitBranch, border: "border-l-warning" },
   send_webhook: { label: "send_webhook", icon: Webhook, border: "border-l-primary" },
   close_conversation: { label: "close_conversation", icon: CircleSlash, border: "border-l-primary" },
 }
@@ -314,9 +315,6 @@ function ResourcesProvider({ children }: { children: ReactNode }) {
   )
 }
 
-const SELECT_CLASS =
-  "w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
-
 /** Tag dropdown by name + color, storing the tag's id. Falls back to a
  *  raw id input when no tags exist yet. */
 function TagSelect({
@@ -335,7 +333,6 @@ function TagSelect({
         placeholder={t("tags.placeholder")}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-muted text-foreground"
       />
     )
   }
@@ -350,7 +347,7 @@ function TagSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={SELECT_CLASS}
+        className={nativeSelectClass}
       >
         <option value="">{t("tags.select")}</option>
         {tags.map((tg) => (
@@ -389,7 +386,7 @@ function ContactFieldSelect({
     <select
       value={value || "name"}
       onChange={(e) => onChange(e.target.value)}
-      className={SELECT_CLASS}
+      className={nativeSelectClass}
     >
       <option value="name">{t("fields.name")}</option>
       <option value="email">{t("fields.email")}</option>
@@ -428,7 +425,6 @@ function AgentSelect({
         placeholder={t("agents.placeholder")}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-muted text-foreground"
       />
     )
   }
@@ -437,7 +433,7 @@ function AgentSelect({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className={SELECT_CLASS}
+      className={nativeSelectClass}
     >
       <option value="">{t("agents.select")}</option>
       {members.map((m) => (
@@ -476,7 +472,6 @@ function DealPipelineFields({
             onChange={(e) =>
               onChange({ pipeline_id: e.target.value, stage_id: stageId })
             }
-            className="bg-muted text-foreground"
           />
         </FieldBlock>
         <FieldBlock label={t("pipelines.stageIdLabel")}>
@@ -485,7 +480,6 @@ function DealPipelineFields({
             onChange={(e) =>
               onChange({ pipeline_id: pipelineId, stage_id: e.target.value })
             }
-            className="bg-muted text-foreground"
           />
         </FieldBlock>
       </>
@@ -511,7 +505,7 @@ function DealPipelineFields({
               stage_id: firstStage?.id ?? "",
             })
           }}
-          className={SELECT_CLASS}
+          className={nativeSelectClass}
         >
           <option value="">{t("pipelines.selectPipeline")}</option>
           {pipelines.map((p) => (
@@ -530,7 +524,7 @@ function DealPipelineFields({
           onChange={(e) =>
             onChange({ pipeline_id: pipelineId, stage_id: e.target.value })
           }
-          className={SELECT_CLASS}
+          className={nativeSelectClass}
           disabled={!pipelineId || stageOptions.length === 0}
         >
           <option value="">
@@ -575,7 +569,6 @@ function SendTemplateFields({
             onChange={(e) =>
               onChange({ template_name: e.target.value, language })
             }
-            className="bg-muted text-foreground"
           />
         </FieldBlock>
         <FieldBlock label={t("templates.languageLabel")}>
@@ -584,7 +577,6 @@ function SendTemplateFields({
             onChange={(e) =>
               onChange({ template_name: templateName, language: e.target.value })
             }
-            className="bg-muted text-foreground"
           />
         </FieldBlock>
       </>
@@ -607,7 +599,7 @@ function SendTemplateFields({
           const [name, lang] = e.target.value.split("::")
           onChange({ template_name: name ?? "", language: lang ?? "" })
         }}
-        className={SELECT_CLASS}
+        className={nativeSelectClass}
       >
         <option value="">{t("templates.select")}</option>
         {templates.map((tmpl) => {
@@ -719,46 +711,47 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-background">
+    <div className="fixed inset-0 z-30 flex flex-col bg-background">
       {/* Top bar. At sub-sm widths the "Active" label is hidden and the
           switch moves to the right of the save button, so the name input
           gets maximum width. */}
-      <header className="flex flex-shrink-0 items-center gap-2 border-b border-border bg-card/80 px-3 py-3 sm:gap-3 sm:px-4">
+      <header className="flex h-14 flex-shrink-0 items-center gap-2 border-b border-border bg-background px-3 sm:gap-3 sm:px-4">
         <button
           type="button"
           onClick={() => router.push("/automations")}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex size-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           aria-label={t("backToAutomations")}
+          title={t("backToAutomations")}
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="size-4" />
         </button>
         <input
           value={state.name}
           onChange={(e) => patchTop("name", e.target.value)}
           placeholder={t("untitled")}
-          className="min-w-0 flex-1 rounded-md bg-transparent px-2 py-1 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:bg-muted focus:outline-none sm:text-base"
+          aria-label={t("untitled")}
+          className="h-8 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 text-[15px] font-semibold text-foreground outline-none placeholder:text-subtle-foreground hover:border-input focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/15"
         />
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <label className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground">
           <span className="hidden sm:inline">{t("active")}</span>
           <Switch
             checked={state.is_active}
             onCheckedChange={(v) => patchTop("is_active", !!v)}
             aria-label={t("activeAria")}
           />
-        </div>
+        </label>
         <Button
           onClick={save}
           disabled={saving}
-          className="bg-primary text-primary-foreground hover:bg-primary/90"
         >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {saving ? <Loader2 className="animate-spin" /> : null}
           {isEditing ? t("save") : t("saveDraft")}
         </Button>
       </header>
 
       {/* Canvas */}
-      <div className="relative flex-1 overflow-y-auto">
-        <div className="absolute inset-0 bg-[radial-gradient(circle,var(--border)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
+      <div className="relative flex-1 overflow-y-auto bg-card-2">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,var(--border-strong)_1px,transparent_1px)] [background-size:20px_20px] opacity-60" />
         <div className="relative mx-auto flex max-w-2xl flex-col items-center gap-0 px-4 py-10">
           <ResourcesProvider>
             <TriggerCard
@@ -808,17 +801,17 @@ function TriggerCard({
     // Card width: full on mobile, fixed 320px on sm+. The canvas wrapper
     // (max-w-2xl + px-4) keeps this tidy on tablet/desktop.
     <div className="z-10 w-full max-w-[320px] sm:w-80">
-      <div className="rounded-lg border border-border border-l-4 border-l-blue-500 bg-card shadow-lg">
+      <div className="rounded-lg border border-border border-l-2 border-l-foreground bg-card shadow-xs">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           className="flex w-full items-center gap-3 px-4 py-3 text-left"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-500/10 text-blue-400">
+          <div className="flex size-8 items-center justify-center rounded-md bg-foreground text-background">
             <Zap className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] uppercase tracking-wide text-blue-300">{t("trigger")}</div>
+            <div className="text-[11px] font-medium text-muted-foreground">{t("trigger")}</div>
             <div className="truncate text-sm font-medium text-foreground">
               {t(`triggers.${type}.label`)}
             </div>
@@ -836,7 +829,7 @@ function TriggerCard({
               <select
                 value={type}
                 onChange={(e) => onTypeChange(e.target.value as AutomationTriggerType)}
-                className="w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
+                className={nativeSelectClass}
               >
                 {TRIGGER_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -881,7 +874,6 @@ function TriggerCard({
                   onChange={(e) =>
                     onConfigChange({ ...config, schedule: e.target.value })
                   }
-                  className="bg-muted text-foreground"
                 />
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   {t("scheduleHint")}
@@ -951,7 +943,6 @@ function KeywordMatchConfig({
             }
           }}
           placeholder={t("keywordsHint")}
-          className="bg-muted text-foreground"
         />
       </div>
       <div>
@@ -966,7 +957,7 @@ function KeywordMatchConfig({
               match_type: e.target.value as "exact" | "contains" | "word",
             })
           }
-          className="w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground focus:outline-none"
+          className={nativeSelectClass}
         >
           <option value="contains">{t("config.matchContains")}</option>
           <option value="word">{t("config.matchWord")}</option>
@@ -1024,7 +1015,7 @@ function InteractiveReplyConfig({
           }
         }}
         placeholder={t("replyIdsHint")}
-        className="bg-muted font-mono text-foreground"
+        className="font-mono"
       />
       <p className="mt-1 text-[11px] text-muted-foreground">{t("replyIdsHelp")}</p>
     </div>
@@ -1118,7 +1109,7 @@ function StepRenderer({
       <div className={cn("z-10 flex min-w-0 flex-col", width)}>
         <div
           className={cn(
-            "rounded-lg border border-border border-l-4 bg-card shadow-lg",
+            "rounded-lg border border-border border-l-2 bg-card shadow-xs",
             meta.border,
           )}
         >
@@ -1132,7 +1123,7 @@ function StepRenderer({
               <Icon className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              <div className="text-[11px] font-medium text-muted-foreground">
                 {isCondition ? t("kindCondition") : step.step_type === "wait" ? t("kindWait") : t("kindAction")}
               </div>
               <div className="truncate text-sm font-medium text-foreground">{t(`steps.${meta.label}`)}</div>
@@ -1216,7 +1207,7 @@ function ConditionBranches({
     // it anyway, leaving two columns too narrow to render a step in.
     <div className="@container mt-3 w-full">
       <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
-        <BranchColumn label={t("branches.yes")} color="text-primary">
+        <BranchColumn label={t("branches.yes")} color="border-success/25 bg-success/10 text-success">
           <StepList
             {...props}
             steps={yes}
@@ -1224,7 +1215,7 @@ function ConditionBranches({
             scope={{ kind: "branch", parentCid: step.cid, branch: "yes" }}
           />
         </BranchColumn>
-        <BranchColumn label={t("branches.no")} color="text-rose-400">
+        <BranchColumn label={t("branches.no")} color="border-destructive/25 bg-destructive/10 text-destructive">
           <StepList
             {...props}
             steps={no}
@@ -1248,7 +1239,7 @@ function BranchColumn({
 }) {
   return (
     <div className="flex min-w-0 flex-col items-center">
-      <div className={cn("mb-2 text-[11px] font-semibold uppercase", color)}>{label}</div>
+      <div className={cn("mb-2 rounded-[4px] border px-1.5 py-px text-[11px] font-medium", color)}>{label}</div>
       {children}
     </div>
   )
@@ -1261,14 +1252,14 @@ function AddButton({ onPick }: { onPick: (t: AutomationStepType) => void }) {
       <div className="h-4 w-[2px] bg-border" aria-hidden />
       <DropdownMenu>
         <DropdownMenuTrigger
-          className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed border-border bg-background text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary data-[popup-open]:border-primary data-[popup-open]:bg-primary/20 data-[popup-open]:text-primary"
+          className="flex size-7 cursor-pointer items-center justify-center rounded-full border border-border-strong bg-background text-muted-foreground shadow-xs transition-colors hover:border-foreground/40 hover:text-foreground data-[popup-open]:border-foreground/40 data-[popup-open]:text-foreground"
           aria-label={t("addStep")}
         >
           <Plus className="h-4 w-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="start"
-          className="max-h-80 min-w-56 overflow-y-auto border-border bg-popover"
+          className="max-h-80 min-w-56 overflow-y-auto"
         >
           {ADDABLE_STEPS.map((tp) => {
             const Icon = STEP_META[tp].icon
@@ -1310,7 +1301,7 @@ function StepEditor({
             value={(cfg.text as string) ?? ""}
             onChange={(e) => set({ text: e.target.value })}
             placeholder={t("config.placeholderMessageText")}
-            className="min-h-24 bg-muted text-foreground"
+            className="min-h-24"
           />
         </FieldBlock>
       )
@@ -1353,7 +1344,7 @@ function StepEditor({
             <select
               value={(cfg.mode as string) ?? "round_robin"}
               onChange={(e) => set({ mode: e.target.value })}
-              className="w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground"
+              className={nativeSelectClass}
             >
               <option value="round_robin">{t("config.modes.round_robin")}</option>
               <option value="specific">{t("config.modes.specific")}</option>
@@ -1385,7 +1376,6 @@ function StepEditor({
               value={(cfg.value as string) ?? ""}
               onChange={(e) => set({ value: e.target.value })}
               placeholder={t.raw("config.placeholderValue")}
-              className="bg-muted text-foreground"
             />
           </FieldBlock>
         </>
@@ -1403,7 +1393,6 @@ function StepEditor({
             <Input
               value={(cfg.title as string) ?? ""}
               onChange={(e) => set({ title: e.target.value })}
-              className="bg-muted text-foreground"
             />
           </FieldBlock>
           <FieldBlock label={t("config.valueLabel")}>
@@ -1411,7 +1400,6 @@ function StepEditor({
               type="number"
               value={(cfg.value as number) ?? 0}
               onChange={(e) => set({ value: Number(e.target.value) })}
-              className="bg-muted text-foreground"
             />
           </FieldBlock>
         </>
@@ -1425,14 +1413,13 @@ function StepEditor({
               min={1}
               value={(cfg.amount as number) ?? 1}
               onChange={(e) => set({ amount: Math.max(1, Number(e.target.value)) })}
-              className="bg-muted text-foreground"
             />
           </FieldBlock>
           <FieldBlock label={t("config.unitLabel")}>
             <select
               value={(cfg.unit as string) ?? "hours"}
               onChange={(e) => set({ unit: e.target.value })}
-              className="w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground"
+              className={nativeSelectClass}
             >
               <option value="minutes">{t("config.units.minutes")}</option>
               <option value="hours">{t("config.units.hours")}</option>
@@ -1448,7 +1435,7 @@ function StepEditor({
             <select
               value={(cfg.subject as string) ?? "tag_presence"}
               onChange={(e) => set({ subject: e.target.value })}
-              className="w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground"
+              className={nativeSelectClass}
             >
               <option value="tag_presence">{t("config.subjects.tag_presence")}</option>
               <option value="contact_field">{t("config.subjects.contact_field")}</option>
@@ -1469,7 +1456,6 @@ function StepEditor({
               }
               value={(cfg.operand as string) ?? ""}
               onChange={(e) => set({ operand: e.target.value })}
-              className="bg-muted text-foreground"
             />
           </FieldBlock>
           {(cfg.subject === "contact_field" || cfg.subject === "message_content") && (
@@ -1477,7 +1463,6 @@ function StepEditor({
               <Input
                 value={(cfg.value as string) ?? ""}
                 onChange={(e) => set({ value: e.target.value })}
-                className="bg-muted text-foreground"
               />
             </FieldBlock>
           )}
@@ -1490,14 +1475,13 @@ function StepEditor({
             <Input
               value={(cfg.url as string) ?? ""}
               onChange={(e) => set({ url: e.target.value })}
-              className="bg-muted text-foreground"
             />
           </FieldBlock>
           <FieldBlock label={t("config.bodyTemplateLabel")}>
             <Textarea
               value={(cfg.body_template as string) ?? ""}
               onChange={(e) => set({ body_template: e.target.value })}
-              className="min-h-20 bg-muted font-mono text-xs text-foreground"
+              className="min-h-20 font-mono text-xs"
             />
           </FieldBlock>
         </>

@@ -185,10 +185,10 @@ function Banner({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 border-b px-3 py-2 text-xs sm:px-4",
+        "flex shrink-0 items-center gap-3 border-t px-3 py-2 text-xs sm:px-4",
         tone === "primary"
-          ? "border-primary/20 bg-primary/5"
-          : "border-border bg-muted/40",
+          ? "border-primary/15 bg-primary-soft"
+          : "border-border bg-muted/50",
       )}
     >
       {children}
@@ -212,7 +212,7 @@ function BannerButton({
       type="button"
       onClick={onClick}
       disabled={busy}
-      className="inline-flex flex-shrink-0 items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-60"
+      className="inline-flex h-6 flex-shrink-0 cursor-pointer items-center gap-1 rounded-[5px] border border-input bg-background px-2 font-medium text-foreground shadow-xs transition-colors hover:bg-accent disabled:opacity-60 dark:bg-card"
     >
       {busy ? (
         <Loader2 className="h-3 w-3 animate-spin" />

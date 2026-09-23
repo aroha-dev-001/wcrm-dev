@@ -207,10 +207,10 @@ export default function JoinPage() {
   // ----- Loading state (peek pending OR auth not yet resolved) -----
   if (peek === null || authedUserId === undefined) {
     return (
-      <Card className="w-full max-w-md border-border bg-card">
+      <Card className="w-full max-w-[400px] gap-5 py-6 shadow-xs">
         <CardContent className="flex flex-col items-center gap-3 py-12">
-          <Loader2 className="size-6 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">{t('verifying')}</p>
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+          <p className="text-[13px] text-muted-foreground">{t('verifying')}</p>
         </CardContent>
       </Card>
     );
@@ -220,15 +220,15 @@ export default function JoinPage() {
   if (!peek.ok) {
     const failKey = FAIL_KEY[peek.reason];
     return (
-      <Card className="w-full max-w-md border-border bg-card">
+      <Card className="w-full max-w-[400px] gap-5 py-6 shadow-xs">
         <CardHeader className="items-center text-center">
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10">
-            <MailX className="h-6 w-6 text-red-400" />
+          <div className="mb-2 flex size-10 items-center justify-center rounded-full border border-destructive/25 bg-destructive/8 text-destructive">
+            <MailX className="size-5" />
           </div>
-          <CardTitle className="text-xl text-foreground">
+          <CardTitle className="text-lg font-semibold tracking-tight">
             {t(`fail.${failKey}Title`)}
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription>
             {t(`fail.${failKey}Body`)}
           </CardDescription>
         </CardHeader>
@@ -244,34 +244,28 @@ export default function JoinPage() {
             <>
               <Button
                 onClick={loadPeekAndAuth}
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                className="w-full"
               >
                 {t('tryAgain')}
               </Button>
-              <Link href="/signup">
-                <Button
+              <Button
                   variant="outline"
-                  className="w-full border-border text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
+                  className="w-full"
+                 nativeButton={false} render={<Link href="/signup" />}>
                   {t('createNewAccount')}
                 </Button>
-              </Link>
             </>
           ) : (
             <>
-              <Link href="/signup">
-                <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+              <Button className="w-full" nativeButton={false} render={<Link href="/signup" />}>
                   {t('createNewAccount')}
                 </Button>
-              </Link>
-              <Link href="/login">
-                <Button
+              <Button
                   variant="outline"
-                  className="w-full border-border text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
+                  className="w-full"
+                 nativeButton={false} render={<Link href="/login" />}>
                   {t('signIn')}
                 </Button>
-              </Link>
             </>
           )}
         </CardContent>
@@ -282,16 +276,16 @@ export default function JoinPage() {
   // ----- Peek OK -----
   const inviteHeader = (
     <CardHeader className="items-center text-center">
-      <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-        <UsersRound className="h-6 w-6 text-primary" />
+      <div className="mb-2 flex size-10 items-center justify-center rounded-full border border-border bg-card-2 text-muted-foreground">
+        <UsersRound className="size-5" />
       </div>
-      <CardTitle className="text-xl text-foreground">
+      <CardTitle className="text-lg font-semibold tracking-tight">
         {t.rich('invitedTo', {
           name: peek.account_name,
-          account: (chunks) => <span className="text-primary">{chunks}</span>,
+          account: (chunks) => <span className="text-foreground">{chunks}</span>,
         })}
       </CardTitle>
-      <CardDescription className="text-muted-foreground">
+      <CardDescription>
         {t.rich('joinAs', {
           role: tRoles(peek.role),
           date: new Date(peek.expires_at).toLocaleDateString(undefined, {
@@ -301,7 +295,7 @@ export default function JoinPage() {
           }),
           badge: (chunks) => (
             <span className="inline-flex items-center gap-1 text-foreground">
-              <ShieldCheck className="size-3.5 text-primary" />
+              <ShieldCheck className="size-3.5 text-muted-foreground" />
               {chunks}
             </span>
           ),
@@ -314,13 +308,13 @@ export default function JoinPage() {
   if (authedUserId) {
     return (
       <>
-        <Card className="w-full max-w-md border-border bg-card">
+        <Card className="w-full max-w-[400px] gap-5 py-6 shadow-xs">
           {inviteHeader}
           <CardContent className="flex flex-col gap-3">
             <Button
               onClick={handleAccept}
               disabled={accepting}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+              className="w-full"
             >
               {accepting ? (
                 <>
@@ -350,13 +344,13 @@ export default function JoinPage() {
             if (!open) setConflictMessage(null);
           }}
         >
-          <DialogContent className="bg-popover border-border sm:max-w-md">
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-popover-foreground">
-                <AlertTriangle className="size-4 text-amber-400" />
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="size-4 text-warning" />
                 {t('conflictTitle', { name: peek.account_name })}
               </DialogTitle>
-              <DialogDescription className="text-muted-foreground">
+              <DialogDescription>
                 {conflictMessage}
               </DialogDescription>
             </DialogHeader>
@@ -370,18 +364,17 @@ export default function JoinPage() {
                 })}
               </p>
             </div>
-            <DialogFooter className="bg-popover border-border">
+            <DialogFooter>
               <Button
                 variant="outline"
                 onClick={() => setConflictMessage(null)}
-                className="border-border text-popover-foreground hover:bg-muted"
+                className="text-popover-foreground"
               >
                 {t('staySignedIn')}
               </Button>
               <Button
                 onClick={handleSignOutAndRetry}
                 disabled={signingOut}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {signingOut ? (
                   <>
@@ -401,22 +394,24 @@ export default function JoinPage() {
 
   // ----- Not authed: prompt to sign up or sign in -----
   return (
-    <Card className="w-full max-w-md border-border bg-card">
+    <Card className="w-full max-w-[400px] gap-5 py-6 shadow-xs">
       {inviteHeader}
       <CardContent className="flex flex-col gap-2">
-        <Link href={`/signup?invite=${encodeURIComponent(token!)}`}>
-          <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-            {t('createAndJoin')}
-          </Button>
-        </Link>
-        <Link href={`/login?invite=${encodeURIComponent(token!)}`}>
-          <Button
-            variant="outline"
-            className="w-full border-border text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            {t('haveAccount')}
-          </Button>
-        </Link>
+        <Button
+          className="w-full"
+          nativeButton={false}
+          render={<Link href={`/signup?invite=${encodeURIComponent(token!)}`} />}
+        >
+          {t('createAndJoin')}
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full"
+          nativeButton={false}
+          render={<Link href={`/login?invite=${encodeURIComponent(token!)}`} />}
+        >
+          {t('haveAccount')}
+        </Button>
       </CardContent>
     </Card>
   );

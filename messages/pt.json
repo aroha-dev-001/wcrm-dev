@@ -39,7 +39,23 @@
     "defaultAvatar": "Avatar",
     "menuProfile": "Perfil",
     "menuSettings": "Configurações",
-    "menuSignOut": "Sair"
+    "menuSignOut": "Sair",
+    "groupCrm": "CRM",
+    "groupEngage": "Engajamento",
+    "search": "Pesquisar…",
+    "collapse": "Recolher barra lateral",
+    "expand": "Expandir barra lateral",
+    "workspaceMenu": "Menu do espaço de trabalho",
+    "workspaceSettings": "Configurações do espaço",
+    "teamMembers": "Membros da equipe",
+    "whatsappConnection": "Conexão do WhatsApp",
+    "theme": "Tema",
+    "themeLight": "Claro",
+    "themeDark": "Escuro",
+    "themeSystem": "Sistema",
+    "openMenu": "Abrir menu",
+    "accountMenu": "Menu da conta",
+    "productName": "wacrm"
   },
   "Header": {
     "dashboard": "Painel",
@@ -71,7 +87,7 @@
   "Dashboard": {
     "page": {
       "title": "Painel",
-      "description": "Métricas ao vivo de conversas, contatos, negócios, disparos e automações.",
+      "description": "Conversas, pipeline e atividade da equipe em um só lugar.",
       "activeConversations": "Conversas ativas",
       "newContactsToday": "Novos contatos hoje",
       "openDealsValue": "Valor dos negócios abertos",
@@ -79,7 +95,8 @@
       "newTodayVsYesterday": "novos hoje vs. ontem",
       "vsYesterday": "vs. ontem",
       "openDeals": "{count} {count, plural, =1 {negócio aberto} other {negócios abertos}}",
-      "noChange": "Sem alteração {suffix}"
+      "noChange": "Sem alteração {suffix}",
+      "create": "Criar"
     },
     "quickActions": {
       "newContact": "Novo contato",
@@ -89,7 +106,7 @@
     },
     "activityFeed": {
       "title": "Atividade recente",
-      "viewAll": "Ver tudo →",
+      "viewAll": "Ver tudo",
       "noActivity": "Nenhuma atividade ainda",
       "noActivityHint": "A atividade de mensagens, negócios, disparos e automações aparecerá aqui.",
       "showingOf": "Mostrando {visible} de {totalLoaded}{plus}",
@@ -118,19 +135,30 @@
       "noOpenDealsHint": "Crie negócios em Pipelines para ver a divisão por etapa aqui.",
       "dealCount": "{count} {count, plural, =1 {negócio} other {negócios}}",
       "total": "Total",
-      "ariaLabel": "Valor do pipeline por etapa"
+      "ariaLabel": "Valor do pipeline por etapa",
+      "stages": "{count} {count, plural, =1 {etapa} other {etapas}}",
+      "openPipelines": "Abrir pipelines"
     },
     "responseTimeChart": {
       "title": "Tempo médio da primeira resposta",
       "description": "Minutos para responder à primeira mensagem sem resposta de um cliente, por dia da semana",
       "target": "meta {minutes}min",
-      "thisWeek": "Esta semana:",
-      "lastWeek": "Semana passada:",
+      "thisWeek": "Esta semana",
+      "lastWeek": "Semana passada",
       "noReplies": "Nenhuma resposta registrada ainda",
       "noRepliesHint": "Este gráfico é preenchido conforme você responde às mensagens dos clientes."
     },
     "emptyState": {
       "title": "Ainda não há dados suficientes"
+    },
+    "attention": {
+      "title": "Aguardando resposta",
+      "description": "Conversas abertas com mensagens não lidas",
+      "empty": "Tudo em dia",
+      "emptyHint": "Mensagens de clientes não lidas aparecerão aqui.",
+      "openInbox": "Abrir caixa de entrada",
+      "unknown": "Contato desconhecido",
+      "loadError": "Não foi possível carregar as conversas"
     }
   },
   "Inbox": {
@@ -150,7 +178,12 @@
       "clearAll": "Limpar tudo",
       "noConversations": "Nenhuma conversa encontrada",
       "noMessagesYet": "Nenhuma mensagem ainda",
-      "unknown": "Desconhecido"
+      "unknown": "Desconhecido",
+      "title": "Caixa de entrada",
+      "filters": "Filtros",
+      "noConversationsHint": "As conversas aparecem aqui quando clientes enviam mensagens para o seu número do WhatsApp.",
+      "noMatchHint": "Tente outra pesquisa ou filtro.",
+      "statusLabel": "Status"
     },
     "messageThread": {
       "backToConversations": "Voltar às conversas",
@@ -224,7 +257,9 @@
       "send": "Enviar",
       "quickReplyNamePrompt": "Dê um nome a esta resposta rápida:",
       "quickReplySaved": "Salva como resposta rápida.",
-      "quickReplySaveError": "Não foi possível salvar a resposta rápida."
+      "quickReplySaveError": "Não foi possível salvar a resposta rápida.",
+      "sendShortcut": "Enter para enviar · Shift + Enter para nova linha",
+      "typeMessage": "Escreva uma resposta…"
     },
     "bubble": {
       "photo": "Foto",
@@ -302,7 +337,17 @@
       "deals": "Negócios",
       "noTags": "Sem tags",
       "noDeals": "Sem negócios",
-      "addNotePlaceholder": "Adicionar uma nota..."
+      "addNotePlaceholder": "Adicionar uma nota...",
+      "details": "Detalhes",
+      "phone": "Telefone",
+      "email": "E-mail",
+      "company": "Empresa",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "openContact": "Abrir contato",
+      "addNote": "Adicionar nota",
+      "noNotes": "Nenhuma nota ainda",
+      "none": "—"
     },
     "aiBanner": {
       "pausedTitle": "O assistente de IA está pausado aqui",
@@ -358,7 +403,15 @@
       "toastFailedDelete": "Falha ao excluir o contato",
       "toastDeleted": "Contato excluído",
       "toastBulkFailedDelete": "Falha ao excluir os contatos",
-      "toastBulkDeleted": "{count} contatos excluídos"
+      "toastBulkDeleted": "{count} contatos excluídos",
+      "noContactsYetHint": "Adicione contatos um a um ou importe de um arquivo CSV.",
+      "noContactsMatchHint": "Tente outra pesquisa ou limpe o filtro de tags.",
+      "openAction": "Abrir",
+      "moreActions": "Mais ações",
+      "tagsLabel": "Tags",
+      "previousPage": "Página anterior",
+      "nextPage": "Próxima página",
+      "countLabel": "{count, plural, =1 {# contato} other {# contatos}}"
     },
     "form": {
       "addTitle": "Adicionar contato",
@@ -431,7 +484,8 @@
         "title": "Notas internas",
         "placeholder": "Escreva uma nota...",
         "save": "Adicionar nota",
-        "noNotes": "Nenhuma nota ainda."
+        "noNotes": "Nenhuma nota ainda.",
+        "delete": "Excluir nota"
       },
       "dealsTab": {
         "noDeals": "Nenhum negócio ainda"
@@ -546,7 +600,13 @@
       "toastFailedMoveDeal": "Falha ao mover o negócio",
       "toastFailedCreatePipeline": "Falha ao criar o pipeline",
       "toastPipelineCreated": "Pipeline criado",
-      "toastNotLinkedToAccount": "Seu perfil não está vinculado a uma conta."
+      "toastNotLinkedToAccount": "Seu perfil não está vinculado a uma conta.",
+      "viewBoard": "Quadro",
+      "viewTable": "Tabela",
+      "viewLabel": "Visualização",
+      "dealsCount": "{count, plural, =1 {# negócio} other {# negócios}}",
+      "pipelineSettings": "Configurações do pipeline",
+      "switchPipeline": "Trocar pipeline"
     },
     "board": {
       "dropDealHere": "Solte um negócio aqui",
@@ -597,7 +657,9 @@
       "toastMarkedLost": "Marcado como perdido",
       "toastReopened": "Negócio reaberto",
       "toastFailedDelete": "Falha ao excluir o negócio",
-      "toastDeleted": "Negócio excluído"
+      "toastDeleted": "Negócio excluído",
+      "statusWon": "Ganho",
+      "statusLost": "Perdido"
     },
     "settings": {
       "managePipeline": "Gerenciar pipeline",
@@ -621,7 +683,8 @@
       "toastMoveOrDeleteDeals": "Mova ou exclua os negócios desta etapa primeiro",
       "toastFailedDeleteStage": "Falha ao excluir a etapa",
       "toastFailedDeletePipeline": "Falha ao excluir o pipeline",
-      "toastDeleted": "Pipeline excluído"
+      "toastDeleted": "Pipeline excluído",
+      "deleteStage": "Excluir etapa"
     },
     "analytics": {
       "totalDeals": "Total de negócios",
@@ -637,6 +700,20 @@
       "lostThisMonth": "Perdidos neste mês",
       "lostThisMonthTooltip": "Negócios marcados como perdidos desde o primeiro dia do mês atual.",
       "howCalculated": "Como {label} é calculado"
+    },
+    "table": {
+      "deal": "Negócio",
+      "contact": "Contato",
+      "stage": "Etapa",
+      "value": "Valor",
+      "status": "Status",
+      "closeDate": "Data de fechamento",
+      "owner": "Responsável",
+      "created": "Criado",
+      "statusOpen": "Aberto",
+      "empty": "Ainda não há negócios neste pipeline",
+      "emptyHint": "Os negócios adicionados aparecerão aqui e no quadro.",
+      "unassigned": "Não atribuído"
     }
   },
   "Broadcasts": {
@@ -657,7 +734,8 @@
       },
       "errorLoad": "Falha ao carregar os disparos",
       "broadcastInProgress": "Disparo em andamento",
-      "retry": "Tentar novamente"
+      "retry": "Tentar novamente",
+      "countLabel": "{count, plural, =1 {# disparo} other {# disparos}}"
     },
     "status": {
       "draft": "Rascunho",
@@ -717,7 +795,10 @@
       "retryFailed": "Tentar novamente os que falharam ({count})",
       "toastResumeStarted": "Enviando para {count} destinatários em segundo plano.",
       "toastResumeStartedCapped": "Enviando para {count} destinatários em segundo plano. Outros {remaining} precisarão de mais uma execução.",
-      "toastResumeFailed": "Não foi possível retomar: {error}"
+      "toastResumeFailed": "Não foi possível retomar: {error}",
+      "funnelHint": "Proporção de mensagens enviadas que chegou a cada etapa",
+      "unknownContact": "Desconhecido",
+      "ofRecipients": "{pct}% dos destinatários"
     },
     "new": {
       "title": "Novo disparo",
@@ -732,7 +813,9 @@
       "toastNotSignedIn": "Você não está conectado.",
       "toastNotLinked": "Seu perfil não está vinculado a uma conta.",
       "toastFailedDraft": "Falha ao salvar o rascunho: {error}",
-      "toastDraftSaved": "Rascunho salvo"
+      "toastDraftSaved": "Rascunho salvo",
+      "back": "Voltar para disparos",
+      "stepsLabel": "Progresso"
     },
     "wizard": {
       "next": "Avançar",
@@ -781,7 +864,8 @@
         "errorCsvParse": "Não foi possível ler o arquivo CSV.",
         "errorCsvMissingPhone": "O CSV deve ter uma coluna 'phone'.",
         "audienceSummary": "Resumo do público",
-        "calculating": "Calculando…"
+        "calculating": "Calculando…",
+        "estimatedRecipients": "destinatários estimados"
       },
       "personalize": {
         "title": "Personalizar variáveis",
@@ -875,7 +959,16 @@
         "updateError": "Falha ao atualizar",
         "duplicateError": "Falha ao duplicar",
         "deleteError": "Falha ao excluir"
-      }
+      },
+      "countLabel": "{count, plural, =1 {# automação} other {# automações}}",
+      "colName": "Automação",
+      "colTrigger": "Gatilho",
+      "colRuns": "Execuções",
+      "colLastRun": "Última execução",
+      "colActive": "Ativa",
+      "statusActive": "Ativa",
+      "statusPaused": "Pausada",
+      "errorTitle": "Não foi possível carregar as automações"
     },
     "edit": {
       "loading": "Carregando...",
@@ -892,12 +985,13 @@
       "stepPlural": "{count} etapas",
       "noSteps": "Nenhuma etapa registrada.",
       "status": {
-        "success": "sucesso",
-        "partial": "parcial",
-        "failed": "falhou"
+        "success": "Sucesso",
+        "partial": "Parcial",
+        "failed": "Falhou"
       },
       "back": "Voltar",
-      "backAria": "Voltar"
+      "backAria": "Voltar",
+      "editAutomation": "Editar automação"
     },
     "relative": {
       "never": "nunca",
@@ -1102,7 +1196,15 @@
       "triggerKeywordNone": "Acionado por palavra-chave (nenhuma definida)",
       "triggerKeyword": "Acionado por: {keywords}",
       "triggerFirstInbound": "Acionado pela primeira mensagem recebida de um contato",
-      "triggerManual": "Acionamento manual"
+      "triggerManual": "Acionamento manual",
+      "deleteTitle": "Excluir fluxo",
+      "countLabel": "{count, plural, =1 {# fluxo} other {# fluxos}}",
+      "colFlow": "Fluxo",
+      "colStatus": "Status",
+      "colRuns": "Execuções",
+      "colUpdated": "Atualizado",
+      "openMenu": "Abrir menu",
+      "viewRuns": "Ver execuções"
     },
     "edit": {
       "notFound": "Fluxo não encontrado.",
@@ -1655,7 +1757,8 @@
       "phoneNumberIdNotNumeric": "O Phone Number ID deve conter apenas dígitos. Copie o id numérico em Meta → WhatsApp → Configuração da API, não o número de telefone em si.",
       "wabaIdNotNumeric": "O ID da conta do WhatsApp Business deve conter apenas dígitos. Copie-o em Meta → WhatsApp → Configuração da API.",
       "wabaSubscribed": "A conta do WhatsApp Business está inscrita neste app — os webhooks de entrada podem ser entregues.",
-      "wabaNotSubscribed": "A conta do WhatsApp Business não está inscrita neste app, então a Meta não entregará webhooks de entrada. Informe novamente o token de acesso e salve de novo para inscrevê-la."
+      "wabaNotSubscribed": "A conta do WhatsApp Business não está inscrita neste app, então a Meta não entregará webhooks de entrada. Informe novamente o token de acesso e salve de novo para inscrevê-la.",
+      "resetTitle": "Redefinir a configuração do WhatsApp?"
     },
     "sections": {
       "overview": "Visão geral",
@@ -1734,7 +1837,13 @@
       "useMode": "Usar o modo {mode}",
       "active": "Ativo",
       "accentColor": "Cor de destaque",
-      "useTheme": "Usar o tema {name}"
+      "useTheme": "Usar o tema {name}",
+      "modeLight": "Claro",
+      "modeDark": "Escuro",
+      "modeSystem": "Sistema",
+      "modeSystemHint": "Segue a configuração do dispositivo",
+      "modeHint": "Escolha a aparência do wacrm neste dispositivo.",
+      "accentHint": "Usada em ações principais, foco e seleção."
     },
     "security": {
       "title": "Login e segurança",
@@ -1766,7 +1875,7 @@
     },
     "apiKeys": {
       "title": "Chaves de API",
-      "description": "As chaves autenticam a API REST pública (<apiCode>/api/v1</apiCode>) para que você crie suas próprias automações. Envie-as como <headerCode>Authorization: Bearer &lt;key&gt;</headerCode>.",
+      "description": "As chaves autenticam a API REST pública (<apiCode>/api/v1</apiCode>) para que você crie suas próprias automações. Envie-as como <headerCode>Authorization: Bearer '<key>'</headerCode>.",
       "newApiKey": "Nova chave de API",
       "noApiKeys": "Nenhuma chave de API ainda.",
       "createOneHint": "Clique em <bold>Nova chave de API</bold> para criar uma.",
@@ -1852,7 +1961,8 @@
       "saveSuccess": "Assistente de IA salvo.",
       "saveFailed": "Falha ao salvar.",
       "removeSuccess": "Configuração de IA removida.",
-      "removeFailed": "Falha ao remover."
+      "removeFailed": "Falha ao remover.",
+      "loading": "Carregando configuração de IA…"
     },
     "aiKnowledge": {
       "loadFailed": "Falha ao carregar a base de conhecimento",
@@ -1960,7 +2070,12 @@
     "retry": "Tentar novamente",
     "emptyTitle": "Nenhuma notificação ainda",
     "emptyDesc": "Você verá um alerta aqui quando alguém atribuir uma conversa a você.",
-    "unread": "Não lidas"
+    "unread": "Não lidas",
+    "filterAll": "Todas",
+    "filterUnread": "Não lidas",
+    "unreadCount": "{count, plural, =0 {Tudo em dia} =1 {# não lida} other {# não lidas}}",
+    "noUnread": "Nenhuma notificação não lida",
+    "loadErrorTitle": "Não foi possível carregar as notificações"
   },
   "Agents": {
     "title": "Agentes de IA",
@@ -1970,7 +2085,7 @@
     "tabUsage": "Uso",
     "playground": {
       "title": "Playground",
-      "subtitle": "— teste respostas como se você fosse um cliente",
+      "subtitle": "Teste respostas como se você fosse um cliente",
       "reset": "Reiniciar",
       "emptyTitle": "Envie uma mensagem para ver como seu agente responderia.",
       "emptyDesc": "Ele usa sua base de conhecimento e se comporta exatamente como o bot de resposta automática — inclusive na transferência.",
@@ -1980,7 +2095,8 @@
       "placeholder": "Digite uma mensagem de cliente…",
       "notConfigured": "Nenhum agente configurado ainda — conclua a Configuração primeiro.",
       "noReply": "Não foi possível obter uma resposta.",
-      "unreachable": "Não foi possível conectar ao agente."
+      "unreachable": "Não foi possível conectar ao agente.",
+      "send": "Enviar"
     },
     "usage": {
       "title": "Uso de tokens",
@@ -2025,6 +2141,33 @@
     "addSection": "Adicionar seção"
   },
   "DashboardShell": {
-    "loading": "Carregando..."
+    "loading": "Carregando...",
+    "skipToContent": "Pular para o conteúdo"
+  },
+  "CommandMenu": {
+    "title": "Menu de comandos",
+    "placeholder": "Pesquisar páginas, contatos e ações…",
+    "groupNavigation": "Ir para",
+    "groupActions": "Ações",
+    "groupSettings": "Configurações",
+    "groupContacts": "Contatos",
+    "newContact": "Novo contato",
+    "newDeal": "Novo negócio",
+    "newBroadcast": "Novo disparo",
+    "newAutomation": "Nova automação",
+    "newFlow": "Novo fluxo",
+    "importContacts": "Importar contatos",
+    "toggleTheme": "Alternar modo claro / escuro",
+    "signOut": "Sair",
+    "noResults": "Nenhum resultado para “{query}”",
+    "searching": "Pesquisando contatos…",
+    "hintNavigate": "Navegar",
+    "hintSelect": "Abrir",
+    "hintClose": "Fechar"
+  },
+  "Confirm": {
+    "cancel": "Cancelar",
+    "continue": "Continuar",
+    "delete": "Excluir"
   }
 }

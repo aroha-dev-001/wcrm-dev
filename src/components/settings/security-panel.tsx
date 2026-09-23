@@ -12,7 +12,7 @@ import { useTranslations } from 'next-intl';
 export function SecurityPanel() {
   const t = useTranslations('Settings.security');
   return (
-    <section className="max-w-2xl animate-in fade-in-50 duration-200">
+    <section className="max-w-2xl">
       <SettingsPanelHead
         title={t('title')}
         description={t('description')}

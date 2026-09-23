@@ -4,8 +4,9 @@ import { Clock } from 'lucide-react'
 import { DOW_SHORT_MON_FIRST } from '@/lib/dashboard/date-utils'
 import type { ResponseTimeSummary } from '@/lib/dashboard/types'
 import { BarChart } from '@/components/tremor/bar-chart'
-import { EmptyState } from './empty-state'
-import { Skeleton } from './skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Panel, PanelHeader } from '@/components/ui/panel'
 
 interface ResponseTimeChartProps {
   data: ResponseTimeSummary | null
@@ -47,66 +48,63 @@ export function ResponseTimeChart({
     })) ?? []
 
   return (
-    <section className="rounded-xl border border-border bg-card">
-      <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">
-            {t('title')}
-          </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {t('description')}
-          </p>
-        </div>
-        <div className="flex items-center gap-3 text-right text-xs">
-          {thresholdMinutes > 0 && (
-            <span className="rounded-full border border-rose-500/40 bg-rose-500/10 px-2 py-0.5 font-medium text-rose-300 tabular-nums">
-              {t('target', { minutes: thresholdMinutes })}
-            </span>
-          )}
-          {data && (data.thisWeekAvg != null || data.lastWeekAvg != null) && (
-            <div>
-              <div className="text-muted-foreground">
-                {t('thisWeek')}{' '}
-                <span className="font-medium text-foreground tabular-nums">
-                  {fmt(data.thisWeekAvg)}
-                </span>
-              </div>
-              <div className="text-muted-foreground">
-                {t('lastWeek')}{' '}
-                <span className="tabular-nums">{fmt(data.lastWeekAvg)}</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </header>
+    <Panel className="h-full">
+      <PanelHeader
+        title={t('title')}
+        description={t('description')}
+        actions={
+          <div className="flex items-center gap-4 text-xs">
+            {data && (data.thisWeekAvg != null || data.lastWeekAvg != null) && (
+              <>
+                <div className="text-right">
+                  <div className="text-muted-foreground">{t('thisWeek')}</div>
+                  <div className="font-semibold text-foreground tabular-nums">
+                    {fmt(data.thisWeekAvg)}
+                  </div>
+                </div>
+                <div className="hidden text-right sm:block">
+                  <div className="text-muted-foreground">{t('lastWeek')}</div>
+                  <div className="font-medium text-muted-foreground tabular-nums">
+                    {fmt(data.lastWeekAvg)}
+                  </div>
+                </div>
+              </>
+            )}
+            {thresholdMinutes > 0 && (
+              <span className="hidden rounded-[5px] border border-border px-1.5 py-0.5 font-medium text-muted-foreground tabular-nums md:inline">
+                {t('target', { minutes: thresholdMinutes })}
+              </span>
+            )}
+          </div>
+        }
+      />
 
-      <div className="p-5">
+      <div className="flex flex-1 flex-col justify-center px-4 py-3">
         {loading || !data ? (
-          <Skeleton className="h-[260px] w-full" />
+          <Skeleton className="h-[220px] w-full" />
         ) : !hasData ? (
           <EmptyState
+            size="sm"
             icon={Clock}
             title={t('noReplies')}
-            hint={t('noRepliesHint')}
+            description={t('noRepliesHint')}
+            className="min-h-[220px]"
           />
         ) : (
           <BarChart
             data={chartData}
             index="day"
             categories={[CATEGORY]}
-            // 'violet' maps to Tailwind's `fill-violet-500` — matches
-            // the brand accent the hand-rolled bars used (#7c3aed).
-            colors={['violet']}
+            // Theme accent via chart tokens (see tremor/chart-colors).
+            colors={['primary']}
             valueFormatter={(value) => `${value.toFixed(1)}m`}
             showLegend={false}
-            yAxisWidth={48}
-            // Compact height so the chart sits well inside the card
-            // without dominating the row alongside the donut + activity feed.
-            className="h-[260px]"
+            yAxisWidth={40}
+            className="h-[220px]"
           />
         )}
       </div>
-    </section>
+    </Panel>
   )
 }
 

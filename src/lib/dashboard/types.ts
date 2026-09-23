@@ -65,3 +65,19 @@ export interface ActivityItem {
   /** Optional deep-link for the whole row (not all items have a target). */
   href?: string
 }
+
+/** An open conversation with unread customer messages. */
+export interface NeedsReplyItem {
+  id: string
+  unreadCount: number
+  lastMessageText: string | null
+  lastMessageAt: string | null
+  contact: {
+    name: string | null
+    phone: string | null
+    wa_username?: string | null
+    wa_user_id?: string | null
+    avatar_url?: string | null
+    company?: string | null
+  } | null
+}

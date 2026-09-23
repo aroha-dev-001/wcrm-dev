@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ArrowLeft,
-  Loader2,
   CircleCheck,
+  History,
   CircleAlert,
   Clock,
   UserPlus,
@@ -20,7 +19,11 @@ import { format, formatDistanceToNow } from "date-fns";
 import { useTranslations } from "next-intl";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Page, PageBody, PageHeader } from "@/components/layout/page";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SkeletonRows } from "@/components/ui/skeleton";
 
 /**
  * Run history viewer.
@@ -64,7 +67,7 @@ const STATUS_META: Record<
   { classes: string; icon: typeof Clock }
 > = {
   active: {
-    classes: "border-emerald-600/40 bg-emerald-500/10 text-emerald-300",
+    classes: "border-success/30 bg-success/10 text-success",
     icon: PlayCircle,
   },
   completed: {
@@ -72,11 +75,11 @@ const STATUS_META: Record<
     icon: CircleCheck,
   },
   handed_off: {
-    classes: "border-amber-600/40 bg-amber-500/10 text-amber-300",
+    classes: "border-warning/30 bg-warning/10 text-warning",
     icon: UserPlus,
   },
   timed_out: {
-    classes: "border-border bg-muted/60 text-muted-foreground",
+    classes: "border-border bg-muted text-muted-foreground",
     icon: Clock,
   },
   paused_by_agent: {
@@ -84,7 +87,7 @@ const STATUS_META: Record<
     icon: PauseCircle,
   },
   failed: {
-    classes: "border-red-600/40 bg-red-500/10 text-red-300",
+    classes: "border-destructive/30 bg-destructive/10 text-destructive",
     icon: CircleAlert,
   },
 };
@@ -148,60 +151,71 @@ export default function FlowRunsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
+      <Page>
+        <PageHeader title={t("title")} back="/flows" backLabel={tEdit("backToFlows")} />
+        <PageBody>
+          <div className="overflow-hidden rounded-lg border border-border bg-card">
+            <SkeletonRows rows={6} />
+          </div>
+        </PageBody>
+      </Page>
     );
   }
   if (notFound || !flow) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3">
-        <p className="text-sm text-muted-foreground">{tEdit("notFound")}</p>
-        <button
-          type="button"
-          onClick={() => router.push("/flows")}
-          className="text-sm text-primary hover:opacity-80"
-        >
-          {tEdit("backToFlows")}
-        </button>
-      </div>
+      <Page>
+        <PageHeader title={t("title")} back="/flows" backLabel={tEdit("backToFlows")} />
+        <PageBody>
+          <div className="rounded-lg border border-border bg-card">
+            <EmptyState
+              title={tEdit("notFound")}
+              action={
+                <Button variant="outline" size="sm" onClick={() => router.push("/flows")}>
+                  {tEdit("backToFlows")}
+                </Button>
+              }
+            />
+          </div>
+        </PageBody>
+      </Page>
     );
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <button
-        type="button"
-        onClick={() => router.push(`/flows/${flow.id}`)}
-        className="mb-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-3 w-3" />
-        {flow.name}
-      </button>
-      <h1 className="text-xl font-semibold text-foreground">{t("title")}</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {t("description")}
-      </p>
-
-      {runs.length === 0 ? (
-        <div className="mt-6 rounded-lg border border-dashed border-border bg-card/50 px-6 py-12 text-center text-sm text-muted-foreground">
-          {t("emptyState")}
-        </div>
-      ) : (
-        <div className="mt-6 flex flex-col gap-2">
-          {runs.map((run) => (
-            <RunCard
-              key={run.id}
-              run={run}
-              events={events.filter((e) => e.flow_run_id === run.id)}
-              expanded={expanded.has(run.id)}
-              onToggle={() => toggle(run.id)}
-              t={t}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+    <Page>
+      <PageHeader
+        back={`/flows/${flow.id}`}
+        backLabel={flow.name}
+        title={t("title")}
+        description={
+          <>
+            <span className="font-medium text-foreground">{flow.name}</span>
+            <span className="mx-1.5 text-border-strong">·</span>
+            {t("description")}
+          </>
+        }
+      />
+      <PageBody>
+        {runs.length === 0 ? (
+          <div className="rounded-lg border border-border bg-card">
+            <EmptyState icon={History} title={t("emptyState")} />
+          </div>
+        ) : (
+          <div className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+            {runs.map((run) => (
+              <RunCard
+                key={run.id}
+                run={run}
+                events={events.filter((e) => e.flow_run_id === run.id)}
+                expanded={expanded.has(run.id)}
+                onToggle={() => toggle(run.id)}
+                t={t}
+              />
+            ))}
+          </div>
+        )}
+      </PageBody>
+    </Page>
   );
 }
 
@@ -228,11 +242,12 @@ function RunCard({
       })
     : null;
   return (
-    <div className="rounded-lg border border-border bg-card">
+    <div>
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left"
+        aria-expanded={expanded}
+        className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-muted/40"
       >
         {expanded ? (
           <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -241,10 +256,10 @@ function RunCard({
         )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-medium text-foreground">
+            <span className="truncate text-[13px] font-medium text-foreground">
               {contactLabel}
             </span>
-            <Badge variant="outline" className={cn("gap-1", meta.classes)}>
+            <Badge className={meta.classes}>
               <StatusIcon className="h-3 w-3" />
               {t(
                 run.status === "active"
@@ -276,13 +291,13 @@ function RunCard({
         </div>
       </button>
       {expanded && (
-        <div className="border-t border-border px-4 py-3">
+        <div className="border-t border-border bg-card-2 px-4 py-3 pl-11">
           {Object.keys(run.vars).length > 0 && (
             <details className="mb-3">
               <summary className="cursor-pointer text-xs text-muted-foreground">
                 {t("capturedVars", { count: Object.keys(run.vars).length })}
               </summary>
-              <pre className="mt-2 overflow-x-auto rounded-md bg-background p-2 text-[11px] text-muted-foreground">
+              <pre className="mt-2 overflow-x-auto rounded-md border border-border bg-background p-2 text-[11px] text-muted-foreground">
                 {JSON.stringify(run.vars, null, 2)}
               </pre>
             </details>
@@ -303,15 +318,15 @@ function RunCard({
 }
 
 const EVENT_COLOR: Record<string, string> = {
-  started: "text-emerald-300",
+  started: "text-success",
   node_entered: "text-muted-foreground",
-  message_sent: "text-sky-300",
+  message_sent: "text-info",
   reply_received: "text-primary",
-  fallback_fired: "text-amber-300",
-  handoff: "text-amber-300",
+  fallback_fired: "text-warning",
+  handoff: "text-warning",
   timeout: "text-muted-foreground",
-  error: "text-red-300",
-  completed: "text-emerald-300",
+  error: "text-destructive",
+  completed: "text-success",
 };
 
 function EventLine({ ev }: { ev: EventRow }) {

@@ -33,7 +33,6 @@ import {
   PlayCircle,
   Save,
   Trash2,
-  Workflow,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -60,51 +59,62 @@ export function EditorHeader() {
   } = useFlowEditor();
 
   return (
-    <div className="flex flex-col gap-1.5 px-6 pt-5">
-      <div className="flex flex-wrap items-center gap-3">
-        {/* ---- left: back · icon · name · status · edited ---- */}
+    <div className="shrink-0 border-b border-border bg-background px-4 py-2.5 sm:px-6">
+      <div className="flex flex-wrap items-center gap-2">
+        {/* ---- left: back · name · status · edited ---- */}
         <button
           type="button"
           onClick={() => router.push("/flows")}
           title={t("backToFlows")}
           aria-label={t("backToFlows")}
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="-ml-1.5 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="size-4" />
         </button>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
-          <Workflow className="h-[18px] w-[18px]" />
-        </span>
-        <input
-          value={state.name}
-          onChange={(e) => setState((s) => ({ ...s, name: e.target.value }))}
-          placeholder={t("namePlaceholder")}
-          spellCheck={false}
-          aria-label={t("namePlaceholder")}
-          className="min-w-[120px] max-w-[340px] rounded-lg border border-transparent bg-transparent px-2 py-1 text-lg font-bold leading-tight tracking-tight text-foreground outline-none transition-colors hover:bg-muted focus:border-primary focus:bg-transparent focus:shadow-[0_0_0_3px_var(--primary-soft)]"
-        />
-        <StatusChip status={state.status} />
-        {dirty && (
-          <span
-            className="inline-flex shrink-0 items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-amber-300"
-            title={t("unsavedHint")}
-            aria-live="polite"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-            {t("edited")}
-          </span>
-        )}
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <input
+              value={state.name}
+              onChange={(e) => setState((s) => ({ ...s, name: e.target.value }))}
+              placeholder={t("namePlaceholder")}
+              spellCheck={false}
+              aria-label={t("namePlaceholder")}
+              className="h-7 min-w-[120px] max-w-[340px] rounded-md border border-transparent bg-transparent px-1.5 text-[15px] font-semibold text-foreground outline-none transition-colors hover:border-input focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/15"
+            />
+            <StatusChip status={state.status} />
+            {dirty && (
+              <span
+                className="inline-flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-warning"
+                title={t("unsavedHint")}
+                aria-live="polite"
+              >
+                <span className="size-1.5 rounded-full bg-warning" />
+                {t("edited")}
+              </span>
+            )}
+          </div>
+          {/* ---- description note (subtle, inline-editable) ---- */}
+          <input
+            value={state.description}
+            onChange={(e) =>
+              setState((s) => ({ ...s, description: e.target.value }))
+            }
+            placeholder={t("descriptionPlaceholder")}
+            aria-label={t("descriptionLabel")}
+            className="h-6 w-full max-w-[78ch] rounded-md border border-transparent bg-transparent px-1.5 text-[13px] text-muted-foreground outline-none transition-colors placeholder:text-subtle-foreground hover:border-input focus-visible:border-ring focus-visible:text-foreground"
+          />
+        </div>
 
         {/* ---- right: runs · delete · activate · save ---- */}
-        <div className="ml-auto flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => router.push(`/flows/${flow.id}/runs`)}
           >
-            <History className="h-3.5 w-3.5" />
+            <History />
             {t("runs")}
-            <span className="ml-0.5 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+            <span className="ml-0.5 text-xs text-muted-foreground tabular-nums">
               {flow.execution_count}
             </span>
           </Button>
@@ -112,9 +122,9 @@ export function EditorHeader() {
             variant="ghost"
             size="sm"
             onClick={() => void deleteFlow()}
-            className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+            className="text-destructive hover:bg-destructive/8 hover:text-destructive"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 />
             {t("delete")}
           </Button>
           {state.status === "active" ? (
@@ -125,9 +135,9 @@ export function EditorHeader() {
               disabled={activating}
             >
               {activating ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <PauseCircle className="h-3.5 w-3.5" />
+                <PauseCircle />
               )}
               {t("pause")}
             </Button>
@@ -142,34 +152,23 @@ export function EditorHeader() {
               }
             >
               {activating ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <PlayCircle className="h-3.5 w-3.5" />
+                <PlayCircle />
               )}
               {t("activate")}
             </Button>
           )}
           <Button onClick={() => void save()} disabled={saving} size="sm">
             {saving ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
-              <Save className="h-3.5 w-3.5" />
+              <Save />
             )}
             {t("save")}
           </Button>
         </div>
       </div>
-
-      {/* ---- description note (subtle, inline-editable) ---- */}
-      <input
-        value={state.description}
-        onChange={(e) =>
-          setState((s) => ({ ...s, description: e.target.value }))
-        }
-        placeholder={t("descriptionPlaceholder")}
-        aria-label={t("descriptionLabel")}
-        className="w-full max-w-[78ch] rounded-md border border-transparent bg-transparent px-2 py-1 text-[13px] text-muted-foreground outline-none transition-colors placeholder:text-muted-foreground/60 hover:bg-muted/50 focus:border-primary focus:bg-transparent focus:text-foreground"
-      />
     </div>
   );
 }
@@ -186,7 +185,7 @@ function StatusChip({ status }: { status: BuilderState["status"] }) {
       label: t("statusDraft"),
     },
     active: {
-      cls: "border-emerald-600/40 bg-emerald-500/10 text-emerald-300",
+      cls: "border-success/30 bg-success/10 text-success",
       label: t("statusActive"),
     },
     archived: {
@@ -197,11 +196,11 @@ function StatusChip({ status }: { status: BuilderState["status"] }) {
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium",
+        "inline-flex h-5 shrink-0 items-center gap-1 rounded-[5px] border px-1.5 text-[11px] font-medium",
         cfg.cls,
       )}
     >
-      <CircleDot className="h-3 w-3" />
+      <CircleDot className="size-3" />
       {cfg.label}
     </span>
   );

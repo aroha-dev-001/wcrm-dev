@@ -7,6 +7,10 @@ import { useAuth } from "@/hooks/use-auth";
 import type { Notification } from "@/types";
 import { Bell, CheckCheck, Loader2, UserPlus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { Page, PageBody, PageHeader } from "@/components/layout/page";
+import { EmptyState, ErrorState } from "@/components/ui/empty-state";
+import { SkeletonRows } from "@/components/ui/skeleton";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -27,6 +31,7 @@ export default function NotificationsPage() {
   );
   const [error, setError] = useState<string | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
+  const [filter, setFilter] = useState<"all" | "unread">("all");
 
   const load = useCallback(async () => {
     if (!accountId) return;
@@ -144,126 +149,145 @@ export default function NotificationsPage() {
     }
   }, [unreadIds.length, load, t]);
 
+  const header = (
+    <PageHeader
+      title={t("title")}
+      description={
+        notifications ? t("unreadCount", { count: unreadIds.length }) : t("description")
+      }
+      actions={
+        <>
+          <SegmentedControl
+            aria-label={t("title")}
+            value={filter}
+            onValueChange={setFilter}
+            options={[
+              { value: "all", label: t("filterAll") },
+              { value: "unread", label: t("filterUnread") },
+            ]}
+          />
+          <Button
+            variant="outline"
+            disabled={unreadIds.length === 0 || markingAll}
+            onClick={markAllRead}
+          >
+            {markingAll ? <Loader2 className="animate-spin" /> : <CheckCheck />}
+            {t("markAllRead")}
+          </Button>
+        </>
+      }
+    />
+  );
+
   if (error) {
     return (
-      <div className="flex h-64 flex-col items-center justify-center gap-2">
-        <p className="text-sm text-destructive">{error}</p>
-        <Button variant="outline" onClick={() => window.location.reload()}>
-          {t("retry")}
-        </Button>
-      </div>
+      <Page>
+        {header}
+        <PageBody>
+          <div className="rounded-lg border border-border bg-card">
+            <ErrorState
+              title={t("loadErrorTitle")}
+              description={error}
+              action={
+                <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                  {t("retry")}
+                </Button>
+              }
+            />
+          </div>
+        </PageBody>
+      </Page>
     );
   }
 
   if (notifications === null) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
+      <Page>
+        {header}
+        <PageBody>
+          <div className="mx-auto max-w-3xl overflow-hidden rounded-lg border border-border bg-card">
+            <SkeletonRows rows={6} />
+          </div>
+        </PageBody>
+      </Page>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("description")}
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={unreadIds.length === 0 || markingAll}
-          onClick={markAllRead}
-        >
-          {markingAll ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <CheckCheck className="h-4 w-4" />
-          )}
-          {t("markAllRead")}
-        </Button>
-      </div>
+  const visible =
+    filter === "unread" ? notifications.filter((n) => !n.read_at) : notifications;
 
-      {notifications.length === 0 ? (
-        <div className="flex h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/40">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            <Bell className="h-6 w-6 text-primary" />
-          </div>
-          <p className="mt-3 text-sm font-medium text-foreground">
-            {t("emptyTitle")}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {t("emptyDesc")}
-          </p>
-        </div>
-      ) : (
-        <ul className="space-y-2">
-          {notifications.map((n) => {
-            const Icon = TYPE_ICON[n.type] ?? Bell;
-            const isUnread = !n.read_at;
-            return (
-              <li key={n.id}>
-                <button
-                  type="button"
-                  onClick={() => handleClick(n)}
-                  className={cn(
-                    "flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-colors",
-                    isUnread
-                      ? "border-primary/30 bg-primary/5 hover:border-primary/50"
-                      : "border-border bg-card hover:border-border/70",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg",
-                      isUnread ? "bg-primary/15" : "bg-muted",
-                    )}
-                    aria-hidden
-                  >
-                    <Icon
+  return (
+    <Page>
+      {header}
+      <PageBody>
+        <div className="mx-auto max-w-3xl">
+          {visible.length === 0 ? (
+            <div className="rounded-lg border border-border bg-card">
+              <EmptyState
+                icon={Bell}
+                title={filter === "unread" && notifications.length > 0 ? t("noUnread") : t("emptyTitle")}
+                description={filter === "unread" && notifications.length > 0 ? undefined : t("emptyDesc")}
+              />
+            </div>
+          ) : (
+            <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+              {visible.map((n) => {
+                const Icon = TYPE_ICON[n.type] ?? Bell;
+                const isUnread = !n.read_at;
+                return (
+                  <li key={n.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleClick(n)}
                       className={cn(
-                        "h-5 w-5",
-                        isUnread ? "text-primary" : "text-muted-foreground",
+                        "flex w-full cursor-pointer items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none",
+                        isUnread && "bg-primary-soft/60",
                       )}
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    >
                       <span
-                        className={cn(
-                          "truncate text-sm font-semibold",
-                          isUnread ? "text-foreground" : "text-muted-foreground",
-                        )}
+                        className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-muted-foreground"
+                        aria-hidden
                       >
-                        {n.title}
+                        <Icon className="size-3.5" />
                       </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "truncate text-[13px]",
+                              isUnread
+                                ? "font-semibold text-foreground"
+                                : "font-medium text-muted-foreground",
+                            )}
+                          >
+                            {n.title}
+                          </span>
+                          <span className="ml-auto shrink-0 text-xs text-subtle-foreground tabular-nums">
+                            {formatDistanceToNow(new Date(n.created_at), {
+                              addSuffix: true,
+                            })}
+                          </span>
+                        </div>
+                        {n.body && (
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {n.body}
+                          </p>
+                        )}
+                      </div>
                       {isUnread && (
                         <span
                           aria-label={t("unread")}
-                          className="h-2 w-2 flex-shrink-0 rounded-full bg-primary"
+                          className="mt-2 size-2 shrink-0 rounded-full bg-primary"
                         />
                       )}
-                    </div>
-                    {n.body && (
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {n.body}
-                      </p>
-                    )}
-                    <p className="mt-1 text-[11px] text-muted-foreground/70">
-                      {formatDistanceToNow(new Date(n.created_at), {
-                        addSuffix: true,
-                      })}
-                    </p>
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </PageBody>
+    </Page>
   );
 }

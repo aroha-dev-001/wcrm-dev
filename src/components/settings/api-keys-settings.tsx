@@ -42,6 +42,7 @@ import {
 } from '@/lib/api-keys/scopes';
 import { useTranslations } from 'next-intl';
 import { SettingsPanelHead } from './settings-panel-head';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface ApiKey {
   id: string;
@@ -135,7 +136,7 @@ export function ApiKeysSettings() {
   }
 
   return (
-    <section className="animate-in fade-in-50 space-y-6 duration-200">
+    <section className="space-y-6">
       <SettingsPanelHead
         title={t('title')}
         description={
@@ -155,27 +156,21 @@ export function ApiKeysSettings() {
       />
 
       {keys.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-            <KeyRound className="text-muted-foreground size-6" />
-            <p className="text-muted-foreground mt-2 text-sm">
-              {t('noApiKeys')}
-            </p>
-            {canEditSettings ? (
-              <p className="text-muted-foreground mt-1 text-xs">
-                {t.rich('createOneHint', {
-                  bold: (chunks: React.ReactNode) => (
-                    <span className="text-foreground">{chunks}</span>
-                  ),
-                })}
-              </p>
-            ) : (
-              <p className="text-muted-foreground mt-1 text-xs">
-                {t('askAdminHint')}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        <div className="rounded-lg border border-border bg-card">
+          <EmptyState
+            icon={KeyRound}
+            title={t('noApiKeys')}
+            description={
+              canEditSettings
+                ? t.rich('createOneHint', {
+                    bold: (chunks: React.ReactNode) => (
+                      <span className="font-medium text-foreground">{chunks}</span>
+                    ),
+                  })
+                : t('askAdminHint')
+            }
+          />
+        </div>
       ) : (
         <Card>
           <CardContent className="p-0">
@@ -200,12 +195,12 @@ export function ApiKeysSettings() {
                           {k.name}
                         </span>
                         {status === 'revoked' && (
-                          <Badge className="border-border bg-muted text-muted-foreground text-[10px] tracking-wide uppercase">
+                          <Badge>
                             {t('revoked')}
                           </Badge>
                         )}
                         {status === 'expired' && (
-                          <Badge className="border-border bg-muted text-muted-foreground text-[10px] tracking-wide uppercase">
+                          <Badge>
                             {t('expired')}
                           </Badge>
                         )}
@@ -248,7 +243,7 @@ export function ApiKeysSettings() {
                           size="sm"
                           onClick={() => handleRevoke(k)}
                           disabled={revoking === k.id}
-                          className="self-start border-red-500/40 bg-red-500/10 text-red-300 hover:border-red-500/60 hover:bg-red-500/20 hover:text-red-200 sm:self-auto"
+                          className="self-start border-destructive/30 bg-destructive/10 text-destructive hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive sm:self-auto"
                         >
                           {revoking === k.id ? (
                             <Loader2 className="size-4 animate-spin" />
@@ -355,20 +350,20 @@ function CreateKeyDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent className="border-border bg-popover sm:max-w-md">
+      <DialogContent className="sm:max-w-md">
         {createdKey ? (
           <>
             <DialogHeader>
-              <DialogTitle className="text-popover-foreground">
+              <DialogTitle>
                 {t('copyTitle')}
               </DialogTitle>
-              <DialogDescription className="text-muted-foreground">
+              <DialogDescription>
                 {t('copyDesc')}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-1.5">
-              <Label className="text-muted-foreground">{t('apiKeyLabel')}</Label>
+              <Label>{t('apiKeyLabel')}</Label>
               <div className="flex gap-2">
                 <Input
                   readOnly
@@ -397,17 +392,17 @@ function CreateKeyDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="text-popover-foreground">
+              <DialogTitle>
                 {t('newKeyTitle')}
               </DialogTitle>
-              <DialogDescription className="text-muted-foreground">
+              <DialogDescription>
                 {t('newKeyDesc')}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="api-key-name" className="text-muted-foreground">
+                <Label htmlFor="api-key-name">
                   {t('nameLabel')}
                 </Label>
                 <Input
@@ -420,7 +415,7 @@ function CreateKeyDialog({
               </div>
 
               <div className="space-y-2">
-                <Label className="text-muted-foreground">{t('scopesLabel')}</Label>
+                <Label>{t('scopesLabel')}</Label>
                 <div className="border-border space-y-2 rounded-md border p-3">
                   {API_SCOPES.map((scope) => (
                     <label
@@ -462,7 +457,6 @@ function CreateKeyDialog({
                   reset();
                   onOpenChange(false);
                 }}
-                className="border-border text-muted-foreground hover:bg-muted"
               >
                 {t('cancel')}
               </Button>

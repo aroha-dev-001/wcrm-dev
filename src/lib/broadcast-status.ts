@@ -5,10 +5,9 @@
  * /broadcasts/page.tsx and /broadcasts/[id]/page.tsx with slight
  * drift risk. One source of truth now.
  *
- * Badge shape: bg-*-500/10 + text-*-400 + border-*-500/20. The
- * translucent fills sit fine on both light and dark surfaces; neutral
- * statuses use text-muted-foreground so the label stays legible in
- * light mode (a solid slate-400 would be too faint on white).
+ * Badge shape: semantic tokens (success / warning / destructive /
+ * info) at a 10% tint with a 25% border — tuned per mode in
+ * globals.css so labels stay legible on light and dark surfaces.
  */
 
 import type { BroadcastStatus, RecipientStatus } from "@/types";
@@ -26,51 +25,51 @@ export interface StatusDisplay {
 export const broadcastStatusConfig: Record<BroadcastStatus, StatusDisplay> = {
   draft: {
     label: "draft",
-    classes: "bg-slate-500/10 text-muted-foreground border-slate-500/20",
+    classes: "border-border bg-muted text-muted-foreground",
   },
   scheduled: {
     label: "scheduled",
-    classes: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    classes: "border-info/25 bg-info/10 text-info",
   },
   sending: {
     label: "sending",
-    classes: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    classes: "border-warning/30 bg-warning/10 text-warning",
     pulse: true,
   },
   sent: {
     label: "sent",
-    classes: "bg-primary/10 text-primary border-primary/20",
+    classes: "border-success/25 bg-success/10 text-success",
   },
   failed: {
     label: "failed",
-    classes: "bg-red-500/10 text-red-400 border-red-500/20",
+    classes: "border-destructive/25 bg-destructive/10 text-destructive",
   },
 };
 
 export const recipientStatusConfig: Record<RecipientStatus, StatusDisplay> = {
   pending: {
     label: "pending",
-    classes: "bg-slate-500/10 text-muted-foreground border-slate-500/20",
+    classes: "border-border bg-muted text-muted-foreground",
   },
   sent: {
     label: "sent",
-    classes: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    classes: "border-info/25 bg-info/10 text-info",
   },
   delivered: {
     label: "delivered",
-    classes: "bg-primary/10 text-primary border-primary/20",
+    classes: "border-success/25 bg-success/10 text-success",
   },
   read: {
     label: "read",
-    classes: "bg-primary/10 text-primary border-primary/20",
+    classes: "border-success/25 bg-success/10 text-success",
   },
   replied: {
     label: "replied",
-    classes: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+    classes: "border-primary/20 bg-primary-soft text-primary",
   },
   failed: {
     label: "failed",
-    classes: "bg-red-500/10 text-red-400 border-red-500/20",
+    classes: "border-destructive/25 bg-destructive/10 text-destructive",
   },
 };
 

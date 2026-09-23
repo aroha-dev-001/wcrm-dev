@@ -3,16 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-import { BarChart3, Bot, PencilLine } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { canEditSettings } from '@/lib/auth/roles';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card';
+import { Panel, PanelHeader } from '@/components/ui/panel';
+import { Stat, StatStrip } from '@/components/ui/stat-strip';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   Select,
   SelectContent,
@@ -20,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Skeleton } from '@/components/dashboard/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart } from '@/components/tremor/bar-chart';
 import { formatCompactNumber } from '@/lib/currency';
 import { format, parseISO } from 'date-fns';
@@ -107,22 +103,16 @@ export function AiUsageCard() {
   const hasSpend = (data?.totals.total_tokens ?? 0) > 0;
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <BarChart3 className="h-4 w-4 text-primary" /> {t('title')}
-            </CardTitle>
-            <CardDescription>
-              {t('description')}
-            </CardDescription>
-          </div>
+    <Panel>
+      <PanelHeader
+        title={t('title')}
+        description={t('description')}
+        actions={
           <Select
             value={String(days)}
             onValueChange={(v) => setDays(Number(v))}
           >
-            <SelectTrigger className="w-32 flex-shrink-0">
+            <SelectTrigger size="sm" className="w-32 flex-shrink-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -133,35 +123,26 @@ export function AiUsageCard() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-5">
+        }
+      />
+      <div className="space-y-5 p-4">
         {loading || !data ? (
           <Skeleton className="h-[220px] w-full" />
         ) : !hasSpend ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-10 text-center text-sm text-muted-foreground">
-            <BarChart3 className="h-8 w-8 opacity-40" />
-            <p>{t('empty', { days: data.window_days })}</p>
-            <p className="text-xs">
-              {t('emptyHint')}
-            </p>
-          </div>
+          <EmptyState
+            size="sm"
+            icon={BarChart3}
+            title={t('empty', { days: data.window_days })}
+            description={t('emptyHint')}
+          />
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatStrip className="sm:grid-cols-4">
               <Stat label={t('totalTokens')} value={formatCompactNumber(data.totals.total_tokens)} />
               <Stat label={t('llmCalls')} value={String(data.totals.calls)} />
-              <Stat
-                label={t('autoReply')}
-                value={formatCompactNumber(data.by_mode.auto_reply.tokens)}
-                icon={Bot}
-              />
-              <Stat
-                label={t('drafts')}
-                value={formatCompactNumber(data.by_mode.draft.tokens)}
-                icon={PencilLine}
-              />
-            </div>
+              <Stat label={t('autoReply')} value={formatCompactNumber(data.by_mode.auto_reply.tokens)} />
+              <Stat label={t('drafts')} value={formatCompactNumber(data.by_mode.draft.tokens)} />
+            </StatStrip>
 
             <div>
               <p className="mb-2 text-xs font-medium text-muted-foreground">
@@ -171,7 +152,7 @@ export function AiUsageCard() {
                 data={chartData}
                 index="day"
                 categories={[tokensLabel]}
-                colors={['violet']}
+                colors={['primary']}
                 valueFormatter={(v) => formatCompactNumber(v)}
                 showLegend={false}
                 yAxisWidth={48}
@@ -188,15 +169,15 @@ export function AiUsageCard() {
                   {data.by_model.map((m) => (
                     <li
                       key={`${m.provider}:${m.model}`}
-                      className="flex items-center justify-between px-3 py-2 text-sm"
+                      className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]"
                     >
                       <span className="min-w-0 truncate">
-                        <span className="text-foreground">{m.model}</span>{' '}
+                        <span className="font-mono text-xs text-foreground">{m.model}</span>{' '}
                         <span className="text-xs text-muted-foreground">
                           ({m.provider})
                         </span>
                       </span>
-                      <span className="flex-shrink-0 tabular-nums text-muted-foreground">
+                      <span className="flex-shrink-0 text-xs text-muted-foreground tabular-nums">
                         {t('modelCalls', {
                           tokens: formatCompactNumber(m.tokens),
                           count: m.calls,
@@ -215,29 +196,7 @@ export function AiUsageCard() {
             )}
           </>
         )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  icon?: typeof Bot;
-}) {
-  return (
-    <div className="rounded-md border border-border p-3">
-      <p className="flex items-center gap-1 text-xs text-muted-foreground">
-        {Icon && <Icon className="h-3 w-3" />}
-        {label}
-      </p>
-      <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
-        {value}
-      </p>
-    </div>
+      </div>
+    </Panel>
   );
 }

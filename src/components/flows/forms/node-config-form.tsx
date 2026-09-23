@@ -152,7 +152,7 @@ export function NodeConfigForm({
                 })
               }
               placeholder={t("varKeyPlaceholder")}
-              className="bg-muted font-mono text-xs"
+              className="font-mono text-xs"
             />
             <p className="mt-1 text-[10px] text-muted-foreground">
               {t("varKeyHelp")}{" "}
@@ -302,14 +302,13 @@ function SendButtonsForm({
                     })
                   }
                   placeholder="reply_id"
-                  className="bg-muted font-mono text-xs"
+                  className="font-mono text-xs"
                 />
               )}
               <Input
                 value={b.title}
                 onChange={(e) => updateButton(i, { title: e.target.value })}
                 placeholder={t("optionTitlePlaceholder")}
-                className="bg-muted"
                 maxLength={20}
               />
               <NodeKeySelect
@@ -323,7 +322,7 @@ function SendButtonsForm({
                 variant="ghost"
                 size="sm"
                 onClick={() => removeButton(i)}
-                className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
@@ -491,14 +490,14 @@ function SendListForm({
                   updateSection(sIdx, { title: e.target.value })
                 }
                 placeholder={t("sectionTitlePlaceholder", { count: sIdx + 1 })}
-                className="bg-muted text-xs"
+                className="text-xs"
               />
               {sections.length > 1 && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => removeSection(sIdx)}
-                  className="shrink-0 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                  className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   aria-label={t("removeSection")}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -527,7 +526,7 @@ function SendListForm({
                       })
                     }
                     placeholder="reply_id"
-                    className="bg-muted font-mono text-xs"
+                    className="font-mono text-xs"
                   />
                 )}
                 <Input
@@ -536,7 +535,6 @@ function SendListForm({
                     updateRow(sIdx, rIdx, { title: e.target.value })
                   }
                   placeholder={t("rowTitlePlaceholder")}
-                  className="bg-muted"
                   maxLength={24}
                 />
                 <NodeKeySelect
@@ -552,7 +550,7 @@ function SendListForm({
                   variant="ghost"
                   size="sm"
                   onClick={() => removeRow(sIdx, rIdx)}
-                  className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -634,7 +632,7 @@ function ConditionForm({
               onUpdateConfig({ subject: v as ConditionCfg["subject"] })
             }
           >
-            <SelectTrigger className="bg-muted">
+            <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -657,7 +655,7 @@ function ConditionForm({
               value={cfg.subject_key ?? ""}
               onValueChange={(v) => onUpdateConfig({ subject_key: v })}
             >
-              <SelectTrigger className="bg-muted">
+              <SelectTrigger>
                 <SelectValue placeholder={t("pickTag")} />
               </SelectTrigger>
               <SelectContent>
@@ -673,7 +671,7 @@ function ConditionForm({
               value={cfg.subject_key ?? ""}
               onValueChange={(v) => onUpdateConfig({ subject_key: v })}
             >
-              <SelectTrigger className="bg-muted">
+              <SelectTrigger>
                 <SelectValue placeholder={t("pickField")} />
               </SelectTrigger>
               <SelectContent>
@@ -690,7 +688,7 @@ function ConditionForm({
                 onUpdateConfig({ subject_key: e.target.value })
               }
               placeholder={subject === "var" ? t("varKeyPlaceholder") : t("tagUuidPlaceholder")}
-              className="bg-muted font-mono text-xs"
+              className="font-mono text-xs"
             />
           )}
         </div>
@@ -710,7 +708,7 @@ function ConditionForm({
               onUpdateConfig({ operator: v as ConditionCfg["operator"] })
             }
           >
-            <SelectTrigger className="bg-muted">
+            <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -727,7 +725,6 @@ function ConditionForm({
             <Input
               value={cfg.value ?? ""}
               onChange={(e) => onUpdateConfig({ value: e.target.value })}
-              className="bg-muted"
             />
           </div>
         )}
@@ -789,7 +786,7 @@ function SetTagForm({
               onUpdateConfig({ mode: v as SetTagCfg["mode"] })
             }
           >
-            <SelectTrigger className="bg-muted">
+            <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -805,7 +802,7 @@ function SetTagForm({
               value={cfg.tag_id ?? ""}
               onValueChange={(v) => onUpdateConfig({ tag_id: v })}
             >
-              <SelectTrigger className="bg-muted">
+              <SelectTrigger>
                 <SelectValue placeholder={t("pickTag")} />
               </SelectTrigger>
               <SelectContent>
@@ -821,7 +818,7 @@ function SetTagForm({
               value={cfg.tag_id ?? ""}
               onChange={(e) => onUpdateConfig({ tag_id: e.target.value })}
               placeholder={t("tagUuidPlaceholder")}
-              className="bg-muted font-mono text-xs"
+              className="font-mono text-xs"
             />
           )}
         </div>
@@ -961,7 +958,7 @@ function SendMediaForm({
             });
           }}
         >
-          <SelectTrigger className="bg-muted">
+          <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -978,12 +975,12 @@ function SendMediaForm({
         <label className="mb-1 block text-xs text-muted-foreground">{t("fileLabel")}</label>
         {cfg.media_url ? (
           <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2 text-xs">
-            <Paperclip className="h-3.5 w-3.5 shrink-0 text-cyan-400" />
+            <Paperclip className="h-3.5 w-3.5 shrink-0 text-info" />
             <a
               href={cfg.media_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="min-w-0 flex-1 truncate text-foreground hover:text-cyan-300"
+              className="min-w-0 flex-1 truncate text-foreground hover:text-info"
               title={displayName || cfg.media_url}
             >
               {displayName || cfg.media_url}
@@ -1048,7 +1045,7 @@ function SendMediaForm({
             value={cfg.filename ?? ""}
             onChange={(e) => onUpdateConfig({ filename: e.target.value })}
             placeholder={t("filenamePlaceholder")}
-            className="bg-muted text-xs"
+            className="text-xs"
           />
         </div>
       )}

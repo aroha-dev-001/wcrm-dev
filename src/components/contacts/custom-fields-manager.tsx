@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 interface CustomFieldsManagerProps {
   open: boolean;
@@ -35,10 +36,10 @@ export function CustomFieldsManager({
   const t = useTranslations('Contacts.customFields');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-popover-foreground">{t('title')}</DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogTitle>{t('title')}</DialogTitle>
+          <DialogDescription>
             {t('desc')}
           </DialogDescription>
         </DialogHeader>
@@ -56,6 +57,8 @@ export function CustomFieldsManager({
  */
 export function CustomFieldsPanel() {
   const t = useTranslations('Contacts.customFields');
+  const tConfirm = useTranslations('Confirm');
+  const confirm = useConfirm();
   const supabase = createClient();
   const { user, accountId } = useAuth();
 
@@ -151,13 +154,13 @@ export function CustomFieldsPanel() {
   }
 
   async function handleDelete(field: CustomField) {
-    if (
-      !window.confirm(
-        t('deleteConfirm', { name: field.field_name })
-      )
-    ) {
-      return;
-    }
+    const yes = await confirm({
+      title: t('deleteTitle'),
+      description: t('deleteConfirm', { name: field.field_name }),
+      confirmLabel: tConfirm('delete'),
+      destructive: true,
+    });
+    if (!yes) return;
     setBusyId(field.id);
     const { error } = await supabase
       .from('custom_fields')
@@ -186,12 +189,11 @@ export function CustomFieldsPanel() {
             }
           }}
           placeholder={t('fieldName')}
-          className="bg-muted text-foreground"
         />
         <Button
           onClick={handleCreate}
           disabled={creating || !newName.trim()}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0"
+          className="shrink-0"
         >
           {creating ? (
             <Loader2 className="size-4 animate-spin" />
@@ -267,7 +269,7 @@ function FieldRow({
           if (e.key === 'Enter') e.currentTarget.blur();
         }}
         aria-label={t('renameAria', { name: field.field_name })}
-        className="focus:border-primary h-8 border-transparent bg-transparent text-foreground hover:border-border"
+        className="h-8 border-transparent hover:border-border"
       />
       <Button
         variant="ghost"
@@ -275,7 +277,7 @@ function FieldRow({
         disabled={busy}
         onClick={() => onDelete(field)}
         title={t('deleteTitle')}
-        className="shrink-0 text-muted-foreground hover:text-red-400"
+        className="shrink-0 hover:text-destructive"
       >
         {busy ? (
           <Loader2 className="size-4 animate-spin" />

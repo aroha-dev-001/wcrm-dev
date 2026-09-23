@@ -13,7 +13,7 @@ import { useRealtime } from "@/hooks/use-realtime";
 import { ConversationList } from "@/components/inbox/conversation-list";
 import { MessageThread } from "@/components/inbox/message-thread";
 import { ContactSidebar } from "@/components/inbox/contact-sidebar";
-import { toast } from "sonner";
+import Link from "next/link";
 import { WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -562,16 +562,17 @@ function InboxPageInner() {
   const hasActiveConv = !!activeConversation;
 
   return (
-    <div className="-m-4 flex h-[calc(100vh-3.5rem)] flex-col overflow-hidden sm:-m-6">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {/* WhatsApp connection banner — in the flex column, not absolute,
           so it pushes the panels down instead of overlapping them. */}
       {whatsappConnected === false && (
-        <div className="flex shrink-0 items-center justify-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2">
-          <WifiOff className="h-4 w-4 text-amber-400" />
-          <p className="text-xs text-amber-400">
-            {t("whatsappNotConnected")}
-          </p>
-        </div>
+        <Link
+          href="/settings?tab=whatsapp"
+          className="flex shrink-0 items-center justify-center gap-2 border-b border-warning/25 bg-warning/8 px-4 py-2 text-xs text-foreground transition-colors hover:bg-warning/12"
+        >
+          <WifiOff className="size-3.5 text-warning" />
+          <span>{t("whatsappNotConnected")}</span>
+        </Link>
       )}
 
       <div className="flex flex-1 overflow-hidden">
@@ -630,7 +631,7 @@ function InboxPageInner() {
             agent hasn't collapsed it via the thread-header toggle (#258).
             On mobile it's always hidden (the `lg:block` below), so the
             toggle — which is itself desktop-only — never affects it. */}
-        {contactPanelOpen && (
+        {contactPanelOpen && activeContact && (
           <div className="hidden lg:block">
             <ContactSidebar contact={activeContact} />
           </div>

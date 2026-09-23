@@ -68,11 +68,11 @@ function StatusIcon({
     case "delivered":
       return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
     case "read":
-      return <CheckCheck className="h-3 w-3 text-blue-400" />;
+      return <CheckCheck className="h-3 w-3 text-info" />;
     case "failed":
       return (
         <span className="inline-flex" title={title ?? undefined}>
-          <XCircle className="h-3 w-3 text-red-400" />
+          <XCircle className="h-3 w-3 text-destructive" />
         </span>
       );
     default:
@@ -165,10 +165,10 @@ function MessageContent({
         <div>
           <span
             className={cn(
-              "mb-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
+              "mb-1 inline-flex items-center gap-1 rounded-[4px] border px-1.5 py-0.5 text-[10px] font-medium",
               isAgent
-                ? "bg-primary-foreground/20 text-primary-foreground"
-                : "bg-primary/20 text-primary",
+                ? "border-primary/20 text-primary"
+                : "border-border text-muted-foreground",
             )}
           >
             <LayoutTemplate className="h-3 w-3" />
@@ -263,17 +263,16 @@ export function MessageBubble({
     >
       <div
         className={cn(
-          "relative rounded-2xl px-3 py-2",
+          "relative rounded-lg px-3 py-2 text-foreground",
           isAgent
-            ? "rounded-br-md bg-primary text-primary-foreground"
-            : "rounded-bl-md bg-muted text-foreground",
+            ? "rounded-br-sm border border-primary/12 bg-bubble-out"
+            : "rounded-bl-sm border border-border bg-card shadow-xs",
         )}
       >
         {reply && (
           <ReplyQuote
             authorLabel={reply.authorLabel}
             preview={reply.preview}
-            onPrimary={isAgent}
           />
         )}
         <MessageContent
@@ -294,23 +293,14 @@ export function MessageBubble({
               glance. */}
           {message.ai_generated && (
             <span
-              className="inline-flex items-center gap-0.5 rounded-full bg-primary-foreground/20 px-1.5 py-px text-[9px] font-semibold uppercase leading-none tracking-wide text-primary-foreground"
+              className="inline-flex items-center gap-0.5 rounded-[4px] border border-primary/20 px-1 py-px text-[9px] font-semibold uppercase leading-none tracking-wide text-primary"
               title={t("aiBadgeTitle")}
             >
               <Sparkles className="h-2.5 w-2.5" />
               {t("aiBadge")}
             </span>
           )}
-          <span
-            className={cn(
-              "text-[10px]",
-              // Outbound bubbles sit on the primary fill, so the
-              // timestamp must read against that (not the neutral
-              // foreground) — otherwise it goes low-contrast in light
-              // mode. Inbound bubbles use the muted surface.
-              isAgent ? "text-primary-foreground/70" : "text-muted-foreground",
-            )}
-          >
+          <span className="text-[10px] text-muted-foreground tabular-nums">
             {time}
           </span>
           {isAgent && <StatusIcon status={message.status} title={failure} />}
@@ -318,7 +308,7 @@ export function MessageBubble({
       </div>
       {failure && (
         <p
-          className="mt-0.5 px-1 text-[10px] leading-tight text-muted-foreground"
+          className="mt-0.5 max-w-full px-1 text-[11px] leading-tight text-destructive"
           title={failure}
         >
           {t("notDelivered")}: {failure}

@@ -17,6 +17,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { useTranslations } from 'next-intl';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -62,6 +63,7 @@ type WabaSubscription = {
 
 export function WhatsAppConfig() {
   const t = useTranslations('Settings.whatsapp');
+  const confirm = useConfirm();
   const supabase = createClient();
   // After multi-user, whatsapp_config is one-row-per-account, not
   // one-row-per-user. We pull `accountId` straight off the auth
@@ -436,9 +438,13 @@ export function WhatsAppConfig() {
   }
 
   async function handleReset() {
-    if (!confirm(t('resetConfirm'))) {
-      return;
-    }
+    const yes = await confirm({
+      title: t('resetTitle'),
+      description: t('resetConfirm'),
+      confirmLabel: t('resetConfig'),
+      destructive: true,
+    });
+    if (!yes) return;
 
     try {
       setResetting(true);
@@ -478,13 +484,13 @@ export function WhatsAppConfig() {
 
   if (loading) {
     return (
-      <section className="animate-in fade-in-50 duration-200">
+      <section>
         <SettingsPanelHead
           title={t("title")}
           description={t("description")}
         />
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="size-6 animate-spin text-primary" />
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
       </section>
     );
@@ -526,31 +532,32 @@ export function WhatsAppConfig() {
   );
 
   return (
-    <section className="animate-in fade-in-50 duration-200">
+    <section>
       <SettingsPanelHead
         title={t("title")}
         description={t("description")}
       />
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start">
       {/* Main config form */}
       <div className="space-y-6">
         {/* Corrupted-token reset banner */}
         {showResetBanner && (
-          <Alert className="bg-amber-950/40 border-amber-600/40">
+          <Alert className="bg-warning/10 border-warning/30">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="size-5 text-amber-400 mt-0.5 shrink-0" />
+              <AlertTriangle className="size-5 text-warning mt-0.5 shrink-0" />
               <div className="flex-1">
-                <AlertTitle className="text-amber-200 mb-1">
+                <AlertTitle className="text-warning mb-1">
                   {t('tokenCorrupted')}
                 </AlertTitle>
-                <AlertDescription className="text-amber-100/80 text-sm">
+                <AlertDescription className="text-warning text-sm">
                   {statusMessage}
                 </AlertDescription>
                 <Button
                   onClick={handleReset}
                   disabled={resetting}
                   size="sm"
-                  className="mt-3 bg-amber-600 hover:bg-amber-700 text-white"
+                  variant="outline"
+                  className="mt-3"
                 >
                   {resetting ? (
                     <>
@@ -571,12 +578,12 @@ export function WhatsAppConfig() {
 
         {/* Last save failed — why, which field, and what to quote to Meta */}
         {saveFailure && (
-          <Alert className="bg-red-950/30 border-red-700/50">
+          <Alert variant="destructive">
             <div className="flex items-start gap-3">
-              <XCircle className="size-5 text-red-400 mt-0.5 shrink-0" />
+              <XCircle className="size-5 text-destructive mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
-                <AlertTitle className="text-red-200 mb-1">{t('lastSaveFailed')}</AlertTitle>
-                <AlertDescription className="text-red-100/80 text-sm">
+                <AlertTitle className="text-destructive mb-1">{t('lastSaveFailed')}</AlertTitle>
+                <AlertDescription className="text-destructive text-sm">
                   {saveFailure.message}
                 </AlertDescription>
                 {saveFailure.meta && renderMetaDetails(saveFailure.meta)}
@@ -591,7 +598,7 @@ export function WhatsAppConfig() {
             {connectionStatus === 'connected' ? (
               <CheckCircle2 className="size-4 text-primary" />
             ) : (
-              <XCircle className="size-4 text-red-500" />
+              <XCircle className="size-4 text-destructive" />
             )}
             <AlertTitle className="text-foreground mb-0">
               {connectionStatus === 'connected' ? t('credentialsValid') : t('notConnected')}
@@ -608,7 +615,7 @@ export function WhatsAppConfig() {
               className={
                 'mt-1 text-xs ' +
                 (wabaSubscription.subscribed === false
-                  ? 'text-amber-300'
+                  ? 'text-warning'
                   : 'text-muted-foreground')
               }
             >
@@ -631,20 +638,20 @@ export function WhatsAppConfig() {
           <Alert
             className={
               isRegistered
-                ? 'bg-emerald-950/30 border-emerald-700/50'
-                : 'bg-amber-950/30 border-amber-700/50'
+                ? 'border-success/25 bg-success/8'
+                : 'border-warning/30 bg-warning/8'
             }
           >
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 {isRegistered ? (
-                  <CheckCircle2 className="size-4 text-emerald-400" />
+                  <CheckCircle2 className="size-4 text-success" />
                 ) : (
-                  <AlertTriangle className="size-4 text-amber-400" />
+                  <AlertTriangle className="size-4 text-warning" />
                 )}
                 <AlertTitle
                   className={
-                    'mb-0 ' + (isRegistered ? 'text-emerald-200' : 'text-amber-200')
+                    'mb-0 ' + (isRegistered ? 'text-success' : 'text-warning')
                   }
                 >
                   {isRegistered
@@ -657,7 +664,7 @@ export function WhatsAppConfig() {
                 size="sm"
                 onClick={handleVerifyRegistration}
                 disabled={verifyingRegistration}
-                className="border-border bg-transparent text-foreground hover:bg-muted h-7"
+                className="text-foreground h-7"
               >
                 {verifyingRegistration ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -681,7 +688,7 @@ export function WhatsAppConfig() {
               ) : lastRegistrationError ? (
                 <>
                   {t('lastAttemptFailed')}
-                  <span className="text-red-300">
+                  <span className="text-destructive">
                     &quot;{lastRegistrationError}&quot;
                   </span>
                   . {t('retryHint')}
@@ -692,10 +699,10 @@ export function WhatsAppConfig() {
             </AlertDescription>
 
             {registrationProbe && (
-              <div className="mt-3 rounded border border-border bg-card/60 px-3 py-2 space-y-1.5 text-[11px]">
+              <div className="mt-3 rounded border border-border bg-card px-3 py-2 space-y-1.5 text-[11px]">
                 <p className="font-medium text-foreground">
                   {t('diagnosticLastRun')}
-                  <span className={registrationProbe.live ? 'text-emerald-400' : 'text-amber-400'}>
+                  <span className={registrationProbe.live ? 'text-success' : 'text-warning'}>
                     {registrationProbe.live ? t('live') : t('notLive')}
                   </span>
                 </p>
@@ -703,9 +710,9 @@ export function WhatsAppConfig() {
                   {Object.entries(registrationProbe.checks).map(([k, v]) => (
                     <li key={k} className="flex items-center gap-1.5">
                       {v === true ? (
-                        <CheckCircle2 className="size-3 text-emerald-400 shrink-0" />
+                        <CheckCircle2 className="size-3 text-success shrink-0" />
                       ) : v === false ? (
-                        <XCircle className="size-3 text-red-400 shrink-0" />
+                        <XCircle className="size-3 text-destructive shrink-0" />
                       ) : (
                         <span className="size-3 rounded-full border border-border shrink-0" />
                       )}
@@ -714,7 +721,7 @@ export function WhatsAppConfig() {
                   ))}
                 </ul>
                 {(registrationProbe.errors ?? []).length > 0 && (
-                  <ul className="pt-1 space-y-0.5 text-red-300">
+                  <ul className="pt-1 space-y-0.5 text-destructive">
                     {registrationProbe.errors?.map((e, i) => (
                       <li key={i}>• {e}</li>
                     ))}
@@ -728,34 +735,32 @@ export function WhatsAppConfig() {
         {/* API Credentials */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-foreground">{t('apiCredentialsTitle')}</CardTitle>
-            <CardDescription className="text-muted-foreground">
+            <CardTitle>{t('apiCredentialsTitle')}</CardTitle>
+            <CardDescription>
               {t('apiCredentialsDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-muted-foreground">{t('phoneNumberId')}</Label>
+              <Label>{t('phoneNumberId')}</Label>
               <Input
                 placeholder={t('phoneNumberIdPlaceholder')}
                 value={phoneNumberId}
                 onChange={(e) => setPhoneNumberId(e.target.value)}
-                className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-muted-foreground">{t('wabaId')}</Label>
+              <Label>{t('wabaId')}</Label>
               <Input
                 placeholder={t('wabaIdPlaceholder')}
                 value={wabaId}
                 onChange={(e) => setWabaId(e.target.value)}
-                className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-muted-foreground">{t('accessToken')}</Label>
+              <Label>{t('accessToken')}</Label>
               <div className="relative">
                 <Input
                   type={showToken ? 'text' : 'password'}
@@ -771,7 +776,7 @@ export function WhatsAppConfig() {
                       setTokenEdited(true);
                     }
                   }}
-                  className="bg-muted border-border text-foreground placeholder:text-muted-foreground pr-10"
+                  className="pr-10"
                 />
                 <button
                   type="button"
@@ -789,12 +794,11 @@ export function WhatsAppConfig() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-muted-foreground">{t('webhookVerifyToken')}</Label>
+              <Label>{t('webhookVerifyToken')}</Label>
               <Input
                 placeholder={t('webhookVerifyTokenPlaceholder')}
                 value={verifyToken}
                 onChange={(e) => setVerifyToken(e.target.value)}
-                className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
               />
               <p className="text-xs text-muted-foreground">
                 {t('webhookVerifyTokenHint')}
@@ -802,7 +806,7 @@ export function WhatsAppConfig() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-muted-foreground">
+              <Label>
                 {t('twoStepPin')}
                 <span className="ml-1 text-muted-foreground">{t('optional')}</span>
               </Label>
@@ -815,7 +819,7 @@ export function WhatsAppConfig() {
                 onChange={(e) =>
                   setPin(e.target.value.replace(/\D/g, '').slice(0, 6))
                 }
-                className="bg-muted border-border text-foreground placeholder:text-muted-foreground tracking-widest"
+                className="tracking-widest"
               />
               <p className="text-xs text-muted-foreground leading-relaxed">
                 <span dangerouslySetInnerHTML={{ __html: t('pinHint') }} />
@@ -827,25 +831,25 @@ export function WhatsAppConfig() {
         {/* Webhook URL */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-foreground">{t('webhookTitle')}</CardTitle>
-            <CardDescription className="text-muted-foreground">
+            <CardTitle>{t('webhookTitle')}</CardTitle>
+            <CardDescription>
               {t('webhookDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <Label className="text-muted-foreground">{t('webhookUrl')}</Label>
+              <Label>{t('webhookUrl')}</Label>
               <div className="flex gap-2">
                 <Input
                   readOnly
                   value={webhookUrl}
-                  className="bg-muted border-border text-muted-foreground font-mono text-sm"
+                  className="text-muted-foreground font-mono"
                 />
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={handleCopyWebhookUrl}
-                  className="shrink-0 border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                  className="shrink-0"
                 >
                   <Copy className="size-4" />
                 </Button>
@@ -860,8 +864,8 @@ export function WhatsAppConfig() {
         {config && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-foreground">{t('mediaTitle')}</CardTitle>
-              <CardDescription className="text-muted-foreground">
+              <CardTitle>{t('mediaTitle')}</CardTitle>
+              <CardDescription>
                 {t('mediaDesc')}
               </CardDescription>
             </CardHeader>
@@ -875,7 +879,7 @@ export function WhatsAppConfig() {
                     {t('mirrorInboundDesc')}
                   </p>
                   {!mirrorMedia && (
-                    <p className="mt-1 text-xs text-amber-600 dark:text-amber-500">
+                    <p className="mt-1 text-xs text-warning">
                       {t('mirrorInboundOffWarning')}
                     </p>
                   )}
@@ -896,7 +900,6 @@ export function WhatsAppConfig() {
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             {saving ? (
               <>
@@ -911,7 +914,6 @@ export function WhatsAppConfig() {
             variant="outline"
             onClick={handleTestConnection}
             disabled={testing || !config}
-            className="border-border text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             {testing ? (
               <>
@@ -930,7 +932,7 @@ export function WhatsAppConfig() {
               variant="outline"
               onClick={handleReset}
               disabled={resetting}
-              className="border-red-900 text-red-400 hover:text-red-300 hover:bg-red-950/40"
+              className="border-destructive/30 text-destructive hover:text-destructive hover:bg-destructive/10"
             >
               {resetting ? (
                 <>
@@ -952,8 +954,8 @@ export function WhatsAppConfig() {
       <div>
         <Card>
           <CardHeader>
-            <CardTitle className="text-foreground text-base">{t('setupInstructions')}</CardTitle>
-            <CardDescription className="text-muted-foreground">
+            <CardTitle>{t('setupInstructions')}</CardTitle>
+            <CardDescription>
               {t('setupInstructionsDesc')}
             </CardDescription>
           </CardHeader>
@@ -962,7 +964,7 @@ export function WhatsAppConfig() {
               <AccordionItem className="border-border">
                 <AccordionTrigger className="text-muted-foreground hover:text-foreground hover:no-underline">
                   <span className="flex items-center gap-2">
-                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span>
+                    <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-foreground ring-1 ring-border">1</span>
                     {t('step1')}
                   </span>
                 </AccordionTrigger>
@@ -979,7 +981,7 @@ export function WhatsAppConfig() {
               <AccordionItem className="border-border">
                 <AccordionTrigger className="text-muted-foreground hover:text-foreground hover:no-underline">
                   <span className="flex items-center gap-2">
-                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">2</span>
+                    <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-foreground ring-1 ring-border">2</span>
                     {t('step2')}
                   </span>
                 </AccordionTrigger>
@@ -995,7 +997,7 @@ export function WhatsAppConfig() {
               <AccordionItem className="border-border">
                 <AccordionTrigger className="text-muted-foreground hover:text-foreground hover:no-underline">
                   <span className="flex items-center gap-2">
-                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">3</span>
+                    <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-foreground ring-1 ring-border">3</span>
                     {t('step3')}
                   </span>
                 </AccordionTrigger>
@@ -1012,7 +1014,7 @@ export function WhatsAppConfig() {
               <AccordionItem className="border-border">
                 <AccordionTrigger className="text-muted-foreground hover:text-foreground hover:no-underline">
                   <span className="flex items-center gap-2">
-                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">4</span>
+                    <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-foreground ring-1 ring-border">4</span>
                     {t('step4')}
                   </span>
                 </AccordionTrigger>

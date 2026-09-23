@@ -50,13 +50,11 @@ export function TextRow({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           rows={rows}
-          className="bg-muted"
         />
       ) : (
         <Input
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="bg-muted"
         />
       )}
     </div>

@@ -22,6 +22,7 @@ import {
   resolveSection,
   type SettingsSection,
 } from '@/components/settings/settings-sections';
+import { Page, PageHeader } from '@/components/layout/page';
 
 // `useSearchParams` opts this page out of static prerendering unless it
 // sits under a Suspense boundary. Without one, the production build hits
@@ -43,7 +44,7 @@ function SettingsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { defaultCurrency } = useAuth();
-  const { mode } = useTheme();
+  const { modePreference } = useTheme();
   const t = useTranslations('Settings');
 
   // The URL (`?tab=`) is the single source of truth for the active
@@ -63,10 +64,10 @@ function SettingsPageInner() {
   // already in context.
   const hints: Partial<Record<SettingsSection, ReactNode>> = useMemo(
     () => ({
-      appearance: mode.charAt(0).toUpperCase() + mode.slice(1),
+      appearance: modePreference.charAt(0).toUpperCase() + modePreference.slice(1),
       deals: defaultCurrency,
     }),
-    [mode, defaultCurrency],
+    [modePreference, defaultCurrency],
   );
 
   const panel: Record<SettingsSection, ReactNode> = {
@@ -84,20 +85,14 @@ function SettingsPageInner() {
   };
 
   return (
-    <div>
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          {t('pageTitle')}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('pageDesc')}
-        </p>
+    <Page>
+      <PageHeader title={t('pageTitle')} description={t('pageDesc')} />
+      <div className="flex-1 px-4 py-5 sm:px-6 lg:py-6">
+        <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[200px_minmax(0,1fr)] lg:items-start lg:gap-10">
+          <SettingsRail active={section} onSelect={go} hints={hints} />
+          <div className="min-w-0 max-w-4xl">{panel[section]}</div>
+        </div>
       </div>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-[236px_minmax(0,1fr)] lg:items-start">
-        <SettingsRail active={section} onSelect={go} hints={hints} />
-        <div className="min-w-0">{panel[section]}</div>
-      </div>
-    </div>
+    </Page>
   );
 }

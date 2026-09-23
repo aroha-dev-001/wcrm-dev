@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePresence } from "@/hooks/use-presence";
 import { PresenceDot } from "@/components/presence/presence-dot";
 import { presenceLabel } from "@/lib/presence";
-import { cn } from "@/lib/utils";
+import { cn, initialOf } from "@/lib/utils";
 import type {
   Conversation,
   Message,
@@ -28,9 +28,11 @@ import {
   PanelRightOpen,
   PanelRightClose,
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Spinner } from "@/components/ui/spinner";
 import { format, isToday, isYesterday, differenceInHours } from "date-fns";
 import { useTranslations } from "next-intl";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +40,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageBubble } from "./message-bubble";
 import { MessageActions } from "./message-actions";
 import { MediaLightbox } from "./media-lightbox";
@@ -132,23 +133,18 @@ function groupMessagesByDate(messages: Message[]) {
   return groups;
 }
 
-const STATUS_OPTIONS: { label: string; value: ConversationStatus; color: string }[] = [
-  { label: "Open", value: "open", color: "text-primary" },
-  { label: "Pending", value: "pending", color: "text-amber-400" },
-  { label: "Closed", value: "closed", color: "text-muted-foreground" },
+const STATUS_OPTIONS: { label: string; value: ConversationStatus; dot: string }[] = [
+  { label: "Open", value: "open", dot: "bg-success" },
+  { label: "Pending", value: "pending", dot: "bg-warning" },
+  { label: "Closed", value: "closed", dot: "bg-subtle-foreground" },
 ];
 
 /**
- * WhatsApp-style doodle background applied to the chat area (both the
- * active thread and the empty state). The SVG tile lives at
- * `/public/inbox-doodle.svg`; the slate-950 colour sits underneath so
- * the doodles read as a subtle pattern rather than a stark grid.
- *
- * Defined once at module scope so the two render paths can't drift —
- * if we ever switch the asset, both spots update together.
+ * Chat canvas surface — a plain, very slightly recessed tone so bubbles
+ * read clearly without a decorative pattern. Shared by the active thread
+ * and the empty state so switching between them doesn't shift the tone.
  */
-const DOODLE_BG_CLASSES =
-  "bg-background bg-[url('/inbox-doodle.svg')] bg-repeat";
+const THREAD_BG_CLASSES = "bg-card-2";
 
 export function MessageThread({
   conversation,
@@ -862,21 +858,16 @@ export function MessageThread({
     [conversation, onAssignChange, t],
   );
 
-  // Empty state — same WhatsApp-style doodle background as the active
-  // thread below, so swapping between empty/selected doesn't change the
-  // pattern under the user's eye.
+  // Empty state — same canvas tone as the active thread below, so
+  // swapping between empty/selected doesn't change the surface.
   if (!conversation || !contact) {
     return (
-      <div className={cn("flex flex-1 flex-col items-center justify-center", DOODLE_BG_CLASSES)}>
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-          <MessageSquare className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h3 className="mt-4 text-sm font-medium text-muted-foreground">
-          {t("selectConversation")}
-        </h3>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {t("selectConversationHint")}
-        </p>
+      <div className={cn("flex flex-1 flex-col items-center justify-center", THREAD_BG_CLASSES)}>
+        <EmptyState
+          icon={MessageSquare}
+          title={t("selectConversation")}
+          description={t("selectConversationHint")}
+        />
       </div>
     );
   }
@@ -892,6 +883,11 @@ export function MessageThread({
     ? (currentAssignee?.full_name ?? t("assigned"))
     : t("assign");
 
+  const headerIconButton =
+    "inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60";
+  const headerMenuButton =
+    "inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-accent data-popup-open:bg-accent dark:bg-card";
+
   return (
     // `min-w-0` is load-bearing: the page already puts min-w-0 on the
     // thread's flex *wrapper* (issue #165), but this root keeps the
@@ -901,11 +897,10 @@ export function MessageThread({
     // clipped and the hover toolbar overlaps the Tags panel. Letting the
     // root shrink lets the bubbles' break-words / max-w caps apply.
     // Issue #257.
-    <div className={cn("flex min-w-0 flex-1 flex-col", DOODLE_BG_CLASSES)}>
-      {/* Header — solid card surface sits on top of the doodle so the
-          name/avatar/dropdowns stay legible. */}
-      <div className="flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-3 sm:px-4">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+    <div className={cn("flex min-w-0 flex-1 flex-col", THREAD_BG_CLASSES)}>
+      {/* Header */}
+      <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-background px-3 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2.5">
           {/* Back-to-list button — mobile only. Hidden on lg+ where the
               conversation list is always visible next to the thread. */}
           {onBack && (
@@ -913,127 +908,76 @@ export function MessageThread({
               type="button"
               onClick={onBack}
               aria-label={t("backToConversations")}
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
+              className={cn(headerIconButton, "-ml-1 lg:hidden")}
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="size-4" />
             </button>
           )}
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-foreground">
-            {displayName.charAt(0).toUpperCase()}
-          </div>
+          <Avatar className="size-8">
+            {contact.avatar_url ? <AvatarImage src={contact.avatar_url} alt="" /> : null}
+            <AvatarFallback>{initialOf(displayName)}</AvatarFallback>
+          </Avatar>
           <div className="min-w-0">
-            <h2 className="truncate text-sm font-semibold text-foreground">{displayName}</h2>
-            <p className="truncate text-xs text-muted-foreground">
-              {contactHandle(contact)}
-            </p>
+            <h2 className="truncate text-[13px] leading-5 font-semibold text-foreground">{displayName}</h2>
+            <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+              <span className="truncate">{contactHandle(contact)}</span>
+              {/* 24h customer-service window — hidden on the narrowest
+                  phones so the name + back arrow keep their room. */}
+              <span
+                className={cn(
+                  "hidden shrink-0 items-center gap-1 sm:inline-flex",
+                  sessionInfo.expired ? "text-destructive" : "text-muted-foreground",
+                )}
+              >
+                <span aria-hidden className="text-border-strong">·</span>
+                <Clock className="size-3" />
+                {sessionInfo.remaining}
+              </span>
+            </div>
           </div>
-          {/* Session timer badge — hidden on the narrowest phones so
-              the name + back arrow keep their room. */}
-          <Badge
-            variant="outline"
-            className={cn(
-              "ml-1 hidden gap-1 border-border text-[10px] sm:inline-flex sm:ml-2",
-              sessionInfo.expired ? "text-red-400" : "text-primary"
-            )}
-          >
-            <Clock className="h-3 w-3" />
-            {sessionInfo.remaining}
-          </Badge>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Contact-panel toggle — desktop only. The contact sidebar
-              eats a chunk of horizontal width that crowds the thread on
-              smaller laptops; this lets agents reclaim it when they just
-              want to read and reply. Hidden on mobile, where the sidebar
-              never renders as a permanent panel anyway. Issue #258. */}
-          {onToggleContactPanel && (
-            <button
-              type="button"
-              onClick={onToggleContactPanel}
-              aria-label={
-                contactPanelOpen ? t("hideContactPanel") : t("showContactPanel")
-              }
-              title={contactPanelOpen ? t("hideContact") : t("showContact")}
-              aria-pressed={contactPanelOpen}
-              className={cn(
-                "hidden h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground lg:inline-flex",
-                contactPanelOpen ? "text-primary" : "text-muted-foreground",
-              )}
-            >
-              {contactPanelOpen ? (
-                <PanelRightClose className="h-4 w-4" />
-              ) : (
-                <PanelRightOpen className="h-4 w-4" />
-              )}
-            </button>
-          )}
-
-          {/* Manual refresh — forces a refetch of the messages + the
-              conversation list (the parent bumps its resyncToken). Useful
-              when realtime missed an event or the agent just wants to be
-              sure nothing's stale. Only rendered when the parent wires
-              up `onRefresh`. */}
-          {onRefresh && (
-            <button
-              type="button"
-              onClick={handleRefreshClick}
-              disabled={isRefreshing}
-              aria-label={t("refreshConversation")}
-              title={t("refresh")}
-              className={cn(
-                "inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-60",
-              )}
-            >
-              <RefreshCw
-                className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")}
-              />
-            </button>
-          )}
-
-          {/* Status dropdown */}
+        <div className="flex items-center gap-1.5">
+          {/* Status */}
           <DropdownMenu>
-            <DropdownMenuTrigger className={cn(
-                  "inline-flex items-center justify-center h-7 gap-1 px-2 text-xs rounded-md hover:bg-muted",
-                  currentStatus?.color ?? "text-muted-foreground"
-                )}>
-                {currentStatus ? t(`status${currentStatus.label}`) : t("status")}
-                <ChevronDown className="h-3 w-3" />
+            <DropdownMenuTrigger className={headerMenuButton} aria-label={t("status")}>
+              <span className={cn("size-1.5 rounded-full", currentStatus?.dot ?? "bg-subtle-foreground")} />
+              {currentStatus ? t(`status${currentStatus.label}`) : t("status")}
+              <ChevronDown className="size-3 text-muted-foreground" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="border-border bg-popover"
-            >
+            <DropdownMenuContent align="end" className="w-40">
               {STATUS_OPTIONS.map((opt) => (
                 <DropdownMenuItem
                   key={opt.value}
                   onClick={() => handleStatusChange(opt.value)}
-                  className={cn("text-sm", opt.color)}
                 >
-                  {t(`status${opt.label}`)}
+                  <span className={cn("size-1.5 rounded-full", opt.dot)} />
+                  <span className="flex-1">{t(`status${opt.label}`)}</span>
+                  {conversation.status === opt.value && <Check className="size-3.5 text-foreground!" />}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Assign dropdown */}
+          {/* Assign */}
           <DropdownMenu>
-            <DropdownMenuTrigger
-              className={cn(
-                "inline-flex items-center justify-center h-7 gap-1 px-2 text-xs rounded-md hover:bg-muted",
-                assignedAgentId ? "text-primary" : "text-muted-foreground"
+            <DropdownMenuTrigger className={headerMenuButton} aria-label={t("assign")}>
+              {currentAssignee ? (
+                <Avatar className="size-4">
+                  {currentAssignee.avatar_url ? <AvatarImage src={currentAssignee.avatar_url} alt="" /> : null}
+                  <AvatarFallback className="text-[8px]">
+                    {initialOf(currentAssignee.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <UserPlus className="size-3.5 text-muted-foreground" />
               )}
-            >
-              <UserPlus className="h-3 w-3" />
-              <span className="hidden sm:inline">{assignLabel}</span>
-              <ChevronDown className="h-3 w-3" />
+              <span className="hidden max-w-28 truncate sm:inline">{assignLabel}</span>
+              <ChevronDown className="size-3 text-muted-foreground" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="border-border bg-popover"
-            >
+            <DropdownMenuContent align="end" className="w-56">
               {profiles.length === 0 ? (
-                <DropdownMenuItem disabled className="text-sm text-muted-foreground">
+                <DropdownMenuItem disabled>
                   {t("noTeammates")}
                 </DropdownMenuItem>
               ) : (
@@ -1044,10 +988,6 @@ export function MessageThread({
                     <DropdownMenuItem
                       key={p.id}
                       onClick={() => handleAssignChange(p.user_id)}
-                      className={cn(
-                        "text-sm",
-                        isSelected ? "text-primary" : "text-popover-foreground"
-                      )}
                     >
                       <PresenceDot
                         status={presence}
@@ -1056,55 +996,90 @@ export function MessageThread({
                           getRow(p.user_id)?.last_seen_at ?? null,
                           now
                         )}
-                        className="mr-2"
                       />
-                      <span className="flex-1">
+                      <span className="flex-1 truncate">
                         {p.full_name}
                         {p.user_id === user?.id ? t("me") : ""}
                       </span>
-                      {isSelected && <Check className="ml-2 h-3 w-3" />}
+                      {isSelected && <Check className="size-3.5 text-foreground!" />}
                     </DropdownMenuItem>
                   );
                 })
               )}
               {assignedAgentId && (
                 <>
-                  <DropdownMenuSeparator className="bg-border" />
-                  <DropdownMenuItem
-                    onClick={() => handleAssignChange(null)}
-                    className="text-sm text-muted-foreground"
-                  >
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleAssignChange(null)}>
                     {t("unassign")}
                   </DropdownMenuItem>
                 </>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <div className="mx-0.5 hidden h-5 w-px bg-border sm:block" />
+
+          {/* Manual refresh — forces a refetch of the messages + the
+              conversation list (the parent bumps its resyncToken). */}
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={handleRefreshClick}
+              disabled={isRefreshing}
+              aria-label={t("refreshConversation")}
+              title={t("refresh")}
+              className={headerIconButton}
+            >
+              <RefreshCw className={cn("size-3.5", isRefreshing && "animate-spin")} />
+            </button>
+          )}
+
+          {/* Contact-panel toggle — desktop only (issue #258). */}
+          {onToggleContactPanel && (
+            <button
+              type="button"
+              onClick={onToggleContactPanel}
+              aria-label={
+                contactPanelOpen ? t("hideContactPanel") : t("showContactPanel")
+              }
+              title={contactPanelOpen ? t("hideContact") : t("showContact")}
+              aria-pressed={contactPanelOpen}
+              className={cn(headerIconButton, "hidden lg:inline-flex", contactPanelOpen && "text-foreground")}
+            >
+              {contactPanelOpen ? (
+                <PanelRightClose className="size-4" />
+              ) : (
+                <PanelRightOpen className="size-4" />
+              )}
+            </button>
+          )}
         </div>
       </div>
 
       {/* Messages Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <Spinner className="size-5" />
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-sm text-muted-foreground">{t("noMessagesYet")}</p>
-            <p className="text-xs text-muted-foreground">
-              {t("sendTemplateHint")}
-            </p>
-          </div>
+          <EmptyState
+            size="sm"
+            icon={MessageSquare}
+            title={t("noMessagesYet")}
+            description={t("sendTemplateHint")}
+          />
         ) : (
-          <div className="space-y-4">
+          <div className="mx-auto max-w-3xl space-y-5">
             {messageGroups.map((group) => (
               <div key={group.date}>
                 {/* Date separator */}
-                <div className="mb-4 flex items-center justify-center">
-                  <span className="rounded-full bg-muted px-3 py-1 text-[10px] font-medium text-muted-foreground">
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="h-px flex-1 bg-border" />
+                  <span className="text-[11px] font-medium text-muted-foreground">
                     {formatDateSeparator(group.date, t)}
                   </span>
+                  <span className="h-px flex-1 bg-border" />
                 </div>
                 {/* Messages */}
                 <div className="space-y-2">

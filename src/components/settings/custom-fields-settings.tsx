@@ -1,6 +1,6 @@
 'use client';
 
-import { Shield, SlidersHorizontal } from 'lucide-react';
+import { Shield } from 'lucide-react';
 
 import {
   Card,
@@ -25,15 +25,14 @@ export function CustomFieldsSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-foreground">
-          <SlidersHorizontal className="size-4 text-primary" />
+        <CardTitle className="flex items-center gap-2">
           {t('fieldsTitle')}
           <SettingsChip variant="admin" className="font-medium">
             <Shield />
             {t('adminRole')}
           </SettingsChip>
         </CardTitle>
-        <CardDescription className="text-muted-foreground">
+        <CardDescription>
           {t('fieldsDesc')}
         </CardDescription>
       </CardHeader>

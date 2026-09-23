@@ -120,7 +120,7 @@ export function InteractiveBuilder({
               maxLength={INTERACTIVE_LIMITS.bodyMaxLength}
               onChange={(e) => setField({ body: e.target.value })}
               placeholder={t("bodyPlaceholder")}
-              className="min-h-20 bg-muted text-foreground"
+              className="min-h-20"
             />
           </Field>
 
@@ -133,7 +133,6 @@ export function InteractiveBuilder({
                 value={value.header ?? ""}
                 maxLength={INTERACTIVE_LIMITS.headerTextMaxLength}
                 onChange={(e) => setField({ header: e.target.value })}
-                className="bg-muted text-foreground"
               />
             </Field>
             <Field
@@ -144,7 +143,6 @@ export function InteractiveBuilder({
                 value={value.footer ?? ""}
                 maxLength={INTERACTIVE_LIMITS.footerMaxLength}
                 onChange={(e) => setField({ footer: e.target.value })}
-                className="bg-muted text-foreground"
               />
             </Field>
           </div>
@@ -166,16 +164,16 @@ export function InteractiveBuilder({
           </label>
 
           {!validation.ok && (
-            <p className="text-xs text-red-400">{validation.error}</p>
+            <p className="text-xs text-destructive">{validation.error}</p>
           )}
         </div>
 
         {showPreview && (
           <div className="flex shrink-0 flex-col gap-1.5 @2xl:w-[280px]">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="text-xs font-medium text-muted-foreground">
               {t("preview")}
             </span>
-            <div className="rounded-lg bg-muted/40 p-3">
+            <div className="rounded-lg border border-border bg-card-2 p-3">
               <InteractivePreview
                 payload={value}
                 labels={{
@@ -225,21 +223,21 @@ function ButtonsEditor({
 
   return (
     <div>
-      <label className="mb-2 block text-xs text-muted-foreground">
+      <label className="mb-2 block text-xs font-medium text-muted-foreground">
         {t("buttonsCount", { count: buttons.length, max: INTERACTIVE_LIMITS.maxButtons })}
       </label>
       <div className="flex flex-col gap-2">
         {buttons.map((b, i) => (
           <div
             key={i}
-            className="flex items-center gap-2 rounded-md border border-border bg-muted/40 p-2"
+            className="flex items-center gap-2 rounded-md border border-border bg-card-2 p-2"
           >
             {advanced && (
               <Input
                 value={b.id}
                 onChange={(e) => update(i, { id: slugify(e.target.value, `btn_${i + 1}`) })}
                 placeholder={t("idPlaceholder")}
-                className="w-28 bg-muted font-mono text-xs"
+                className="w-28 font-mono text-xs"
               />
             )}
             <Input
@@ -247,7 +245,7 @@ function ButtonsEditor({
               maxLength={INTERACTIVE_LIMITS.buttonTitleMaxLength}
               onChange={(e) => update(i, { title: e.target.value })}
               placeholder={t("buttonLabelPlaceholder")}
-              className="flex-1 bg-muted"
+              className="flex-1"
             />
             <span className="w-10 shrink-0 text-right text-[10px] text-muted-foreground">
               {b.title.length}/{INTERACTIVE_LIMITS.buttonTitleMaxLength}
@@ -257,7 +255,7 @@ function ButtonsEditor({
                 variant="ghost"
                 size="sm"
                 onClick={() => remove(i)}
-                className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                className="text-muted-foreground hover:bg-destructive/8 hover:text-destructive"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
@@ -345,29 +343,28 @@ function ListEditor({
           value={value.button_label}
           maxLength={INTERACTIVE_LIMITS.buttonTitleMaxLength}
           onChange={(e) => onChange({ ...value, button_label: e.target.value })}
-          className="bg-muted text-foreground"
         />
       </Field>
 
-      <label className="block text-xs text-muted-foreground">
+      <label className="block text-xs font-medium text-muted-foreground">
         {t("rowsCount", { count: totalRows, max: INTERACTIVE_LIMITS.maxListRowsTotal })}
       </label>
 
       {sections.map((section, sIdx) => (
-        <div key={sIdx} className="rounded-md border border-border bg-muted/40 p-2">
+        <div key={sIdx} className="rounded-md border border-border bg-card-2 p-2">
           <div className="mb-2 flex items-center gap-2">
             <Input
               value={section.title ?? ""}
               onChange={(e) => updateSection(sIdx, { title: e.target.value })}
               placeholder={t("sectionTitlePlaceholder")}
-              className="flex-1 bg-muted text-xs"
+              className="flex-1 text-xs"
             />
             {sections.length > 1 && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => removeSection(sIdx)}
-                className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                className="text-muted-foreground hover:bg-destructive/8 hover:text-destructive"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
@@ -375,7 +372,7 @@ function ListEditor({
           </div>
           <div className="flex flex-col gap-2">
             {section.rows.map((row, rIdx) => (
-              <div key={rIdx} className="rounded border border-border bg-card p-2">
+              <div key={rIdx} className="rounded-md border border-border bg-card p-2">
                 <div className="flex items-center gap-2">
                   {advanced && (
                     <Input
@@ -384,7 +381,7 @@ function ListEditor({
                         updateRow(sIdx, rIdx, { id: slugify(e.target.value, `row_${rIdx + 1}`) })
                       }
                       placeholder={t("idPlaceholder")}
-                      className="w-24 bg-muted font-mono text-xs"
+                      className="w-24 font-mono text-xs"
                     />
                   )}
                   <Input
@@ -392,7 +389,7 @@ function ListEditor({
                     maxLength={INTERACTIVE_LIMITS.listRowTitleMaxLength}
                     onChange={(e) => updateRow(sIdx, rIdx, { title: e.target.value })}
                     placeholder={t("rowTitlePlaceholder")}
-                    className="flex-1 bg-muted"
+                    className="flex-1"
                   />
                   <span className="w-10 shrink-0 text-right text-[10px] text-muted-foreground">
                     {row.title.length}/{INTERACTIVE_LIMITS.listRowTitleMaxLength}
@@ -402,7 +399,7 @@ function ListEditor({
                       variant="ghost"
                       size="sm"
                       onClick={() => removeRow(sIdx, rIdx)}
-                      className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                      className="text-muted-foreground hover:bg-destructive/8 hover:text-destructive"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -413,7 +410,7 @@ function ListEditor({
                   maxLength={INTERACTIVE_LIMITS.listRowDescriptionMaxLength}
                   onChange={(e) => updateRow(sIdx, rIdx, { description: e.target.value })}
                   placeholder={t("rowDescriptionPlaceholder")}
-                  className="mt-2 bg-muted text-xs"
+                  className="mt-2 text-xs"
                 />
               </div>
             ))}
@@ -456,10 +453,10 @@ function KindButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex-1 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors",
+        "h-8 flex-1 cursor-pointer rounded-md border px-3 text-[13px] font-medium transition-colors",
         active
-          ? "border-primary bg-primary/10 text-primary"
-          : "border-border bg-muted text-muted-foreground hover:text-foreground",
+          ? "border-foreground/40 bg-background text-foreground shadow-xs dark:bg-accent"
+          : "border-border bg-card text-muted-foreground hover:text-foreground",
       )}
     >
       {label}
@@ -479,7 +476,7 @@ function Field({
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
-        <label className="text-xs text-muted-foreground">{label}</label>
+        <label className="text-xs font-medium text-muted-foreground">{label}</label>
         {counter && <span className="text-[10px] text-muted-foreground">{counter}</span>}
       </div>
       {children}

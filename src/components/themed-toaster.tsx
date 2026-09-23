@@ -38,12 +38,18 @@ export function ThemedToaster() {
   return (
     <Toaster
       theme={isClient ? mode : DEFAULT_MODE}
-      position="top-right"
+      // Bottom-right keeps toasts clear of page headers, whose primary
+      // actions live top-right.
+      position="bottom-right"
       toastOptions={{
         style: {
           background: "var(--popover)",
           border: "1px solid var(--border)",
           color: "var(--popover-foreground)",
+          borderRadius: "var(--radius)",
+          fontSize: "13px",
+          boxShadow:
+            "0 8px 24px -6px oklch(0 0 0 / 0.14), 0 2px 6px -2px oklch(0 0 0 / 0.08)",
         },
       }}
     />

@@ -62,8 +62,8 @@ export function MessageReactions({
           className={cn(
             "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] leading-none transition-colors",
             g.byCurrentUser
-              ? "border-primary/60 bg-primary/15 text-primary hover:bg-primary/25"
-              : "border-border bg-muted/80 text-foreground hover:bg-muted",
+              ? "border-primary/30 bg-primary-soft text-primary hover:bg-primary-soft-2"
+              : "border-border bg-card text-foreground hover:bg-accent",
           )}
         >
           <span className="text-sm leading-none">{g.emoji}</span>

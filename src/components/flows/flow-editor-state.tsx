@@ -50,6 +50,7 @@ import {
   type ValidationIssue,
 } from "@/lib/flows/validate";
 import { useTranslations } from "next-intl";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { unlinkNodeReferences } from "@/lib/flows/edges";
 import type { FlowNodeRow, FlowRow } from "@/lib/flows/types";
 import { NODE_META, slugify, type BuilderNode, type NodeType } from "./shared";
@@ -239,6 +240,8 @@ export function FlowEditorProvider({
 }: ProviderProps) {
   const router = useRouter();
   const t = useTranslations("Flows.editorState");
+  const tList = useTranslations("Flows.list");
+  const confirm = useConfirm();
 
   const [state, setStateRaw] = useState<BuilderState>(() => ({
     name: initialFlow.name,
@@ -402,7 +405,12 @@ export function FlowEditorProvider({
 
   // ---- Delete ----
   const deleteFlow = useCallback(async () => {
-    const yes = window.confirm(t("deleteConfirm", { name: state.name }));
+    const yes = await confirm({
+      title: tList("deleteTitle"),
+      description: t("deleteConfirm", { name: state.name }),
+      confirmLabel: tList("delete"),
+      destructive: true,
+    });
     if (!yes) return;
     try {
       const res = await fetch(`/api/flows/${initialFlow.id}`, {
@@ -414,7 +422,7 @@ export function FlowEditorProvider({
       const msg = err instanceof Error ? err.message : "Delete failed";
       toast.error(msg);
     }
-  }, [initialFlow.id, router, state.name, t]);
+  }, [confirm, initialFlow.id, router, state.name, t, tList]);
 
   // ---- Node mutations ----
   const updateNode = useCallback(

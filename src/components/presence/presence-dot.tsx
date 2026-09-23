@@ -2,11 +2,11 @@ import { cn } from "@/lib/utils";
 import type { PresenceStatus } from "@/lib/presence";
 
 // Single source of truth for presence colours. Semantic accents
-// (emerald / amber / muted), mirroring the role-chip palette already
-// used across settings, so they're intentionally not tokenized.
+// (success / warning / muted) via semantic tokens, so they follow the
+// active light / dark mode.
 export const PRESENCE_DOT_CLASS: Record<PresenceStatus, string> = {
-  online: "bg-emerald-500",
-  away: "bg-amber-500",
+  online: "bg-success",
+  away: "bg-warning",
   offline: "bg-muted-foreground/50",
 };
 

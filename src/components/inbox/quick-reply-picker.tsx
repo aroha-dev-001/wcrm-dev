@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import type { QuickReply } from "@/types";
 import { interactivePayloadPreviewText } from "@/lib/whatsapp/interactive";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface QuickReplyPickerProps {
   open: boolean;
@@ -65,9 +66,7 @@ export function QuickReplyPicker({
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : items.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              {t("quickRepliesEmpty")}
-            </p>
+            <EmptyState size="sm" icon={Zap} title={t("quickRepliesEmpty")} />
           ) : (
             <ul className="flex flex-col gap-1">
               {items.map((qr) => (
@@ -75,15 +74,15 @@ export function QuickReplyPicker({
                   <button
                     type="button"
                     onClick={() => onPick(qr)}
-                    className="flex w-full items-start gap-2 rounded-md border border-border bg-muted/40 p-2.5 text-left hover:border-primary/50 hover:bg-muted"
+                    className="flex w-full cursor-pointer items-start gap-2.5 rounded-md border border-border bg-card px-3 py-2.5 text-left transition-colors hover:border-border-strong hover:bg-card-2 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none"
                   >
                     {qr.kind === "interactive" ? (
-                      <Zap className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <Zap className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                     ) : (
                       <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                     )}
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-foreground">
+                      <span className="block truncate text-[13px] font-medium text-foreground">
                         {qr.title}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">

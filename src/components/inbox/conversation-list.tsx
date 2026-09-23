@@ -7,20 +7,26 @@ import {
   matchesContactFilters,
   normalizeConversations,
 } from "@/lib/inbox/conversations";
-import { cn } from "@/lib/utils";
+import { cn, initialOf } from "@/lib/utils";
 import type { Conversation, ConversationStatus, Tag } from "@/types";
-import { Search, ChevronDown, X } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Search, ListFilter, X, Check, Inbox as InboxIcon } from "lucide-react";
+import { formatDistanceToNowStrict } from "date-fns";
 import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ConversationListProps {
   activeConversationId: string | null;
@@ -37,9 +43,9 @@ interface ConversationListProps {
 }
 
 const STATUS_COLORS: Record<ConversationStatus, string> = {
-  open: "bg-primary",
-  pending: "bg-amber-500",
-  closed: "bg-muted-foreground",
+  open: "bg-success",
+  pending: "bg-warning",
+  closed: "bg-subtle-foreground/60",
 };
 
 
@@ -217,139 +223,118 @@ export function ConversationList({
     [onSelect]
   );
 
-  const activeFilter = FILTER_OPTIONS.find((o) => o.value === filter);
+  const hasSearchOrFilter =
+    search.trim().length > 0 || filter !== "all" || hasContactFilters;
 
   return (
-    // w-full on mobile so the list occupies the whole viewport when it's
-    // the single pane showing; fixed 320px on desktop where it shares the
-    // row with the thread + contact sidebar.
-    <div className="flex h-full w-full flex-col border-r border-border bg-card lg:w-80">
-      {/* Search + Filter */}
-      <div className="space-y-2 border-b border-border p-3">
+    // Full width on mobile (single pane); a fixed column on desktop
+    // where it shares the row with the thread + contact panel.
+    <div className="flex h-full w-full flex-col border-r border-border bg-background lg:w-[320px]">
+      {/* Title + filters */}
+      <div className="shrink-0 space-y-2.5 px-3 pt-3 pb-2">
+        <div className="flex items-center justify-between gap-2 px-1">
+          <h1 className="text-[15px] font-semibold text-foreground">{t("title")}</h1>
+          {(tags.length > 0 || companies.length > 0) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label={t("filters")}
+                title={t("filters")}
+                className={cn(
+                  "relative inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-popup-open:bg-accent",
+                  hasContactFilters && "text-foreground",
+                )}
+              >
+                <ListFilter className="size-4" />
+                {hasContactFilters && (
+                  <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
+                )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="max-h-80 w-60">
+                {tags.length > 0 && (
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>{t("tags")}</DropdownMenuLabel>
+                    {tags.map((tag) => (
+                      <DropdownMenuCheckboxItem
+                        key={tag.id}
+                        checked={selectedTagIds.includes(tag.id)}
+                        onCheckedChange={() => toggleTag(tag.id)}
+                      >
+                        <span
+                          className="size-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: tag.color }}
+                        />
+                        <span className="truncate">{tag.name}</span>
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuGroup>
+                )}
+                {tags.length > 0 && companies.length > 0 && <DropdownMenuSeparator />}
+                {companies.length > 0 && (
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>{t("company")}</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => setSelectedCompany(null)}>
+                      <span className="flex-1">{t("allCompanies")}</span>
+                      {selectedCompany === null && <Check className="size-3.5 text-foreground!" />}
+                    </DropdownMenuItem>
+                    {companies.map((co) => (
+                      <DropdownMenuItem key={co} onClick={() => setSelectedCompany(co)}>
+                        <span className="flex-1 truncate">{co}</span>
+                        {selectedCompany === co && <Check className="size-3.5 text-foreground!" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuGroup>
+                )}
+                {hasContactFilters && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={clearContactFilters}>
+                      <X />
+                      {t("clearAll")}
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={handleSearchChange}
             placeholder={t("searchPlaceholder")}
-            className="border-border bg-muted pl-9 text-sm text-foreground placeholder-muted-foreground focus:border-primary/50"
+            aria-label={t("searchPlaceholder")}
+            className="pl-8"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex items-center justify-center h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted">
-                {activeFilter?.label ?? t("filterAll")}
-                <ChevronDown className="h-3 w-3" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              className="border-border bg-popover"
-            >
-              {FILTER_OPTIONS.map((opt) => (
-                <DropdownMenuItem
-                  key={opt.value}
-                  onClick={() => setFilter(opt.value)}
-                  className={cn(
-                    "text-sm",
-                    filter === opt.value
-                      ? "text-primary"
-                      : "text-popover-foreground"
-                  )}
-                >
-                  {opt.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {tags.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger
+        {/* Status filter */}
+        <div
+          role="tablist"
+          aria-label={t("statusLabel")}
+          className="scrollbar-none -mx-1 flex items-center gap-0.5 overflow-x-auto px-1"
+        >
+          {FILTER_OPTIONS.map((opt) => {
+            const active = filter === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setFilter(opt.value)}
                 className={cn(
-                  "inline-flex items-center justify-center h-7 gap-1 px-2 text-xs rounded-md hover:bg-muted",
-                  selectedTagIds.length > 0
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
+                  "h-6 shrink-0 cursor-pointer rounded-[5px] px-2 text-xs font-medium transition-colors",
+                  active
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {t("tags")}
-                {selectedTagIds.length > 0 && (
-                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                    {selectedTagIds.length}
-                  </span>
-                )}
-                <ChevronDown className="h-3 w-3" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="max-h-64 w-56 border-border bg-popover"
-              >
-                {tags.map((t) => (
-                  <DropdownMenuCheckboxItem
-                    key={t.id}
-                    checked={selectedTagIds.includes(t.id)}
-                    onCheckedChange={() => toggleTag(t.id)}
-                    className="text-sm text-popover-foreground"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: t.color }}
-                      />
-                      <span className="truncate">{t.name}</span>
-                    </span>
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          {companies.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className={cn(
-                  "inline-flex max-w-40 items-center justify-center h-7 gap-1 px-2 text-xs rounded-md hover:bg-muted",
-                  selectedCompany
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <span className="truncate">{selectedCompany ?? t("company")}</span>
-                <ChevronDown className="h-3 w-3 shrink-0" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="max-h-64 w-56 border-border bg-popover"
-              >
-                <DropdownMenuItem
-                  onClick={() => setSelectedCompany(null)}
-                  className={cn(
-                    "text-sm",
-                    selectedCompany === null
-                      ? "text-primary"
-                      : "text-popover-foreground"
-                  )}
-                >
-                  {t("allCompanies")}
-                </DropdownMenuItem>
-                {companies.map((co) => (
-                  <DropdownMenuItem
-                    key={co}
-                    onClick={() => setSelectedCompany(co)}
-                    className={cn(
-                      "text-sm",
-                      selectedCompany === co
-                        ? "text-primary"
-                        : "text-popover-foreground"
-                    )}
-                  >
-                    <span className="truncate">{co}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
 
         {hasContactFilters && (
@@ -359,28 +344,31 @@ export function ConversationList({
               return (
                 <button
                   key={id}
+                  type="button"
                   onClick={() => toggleTag(id)}
-                  className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground hover:bg-muted/70"
+                  className="inline-flex h-6 items-center gap-1.5 rounded-[5px] border border-border bg-card px-1.5 text-[11px] text-foreground hover:bg-accent"
                 >
                   <span
-                    className="h-1.5 w-1.5 shrink-0 rounded-full"
+                    className="size-1.5 shrink-0 rounded-full"
                     style={{ backgroundColor: tag?.color ?? "var(--muted-foreground)" }}
                   />
                   <span className="max-w-24 truncate">{tag?.name ?? t("tags")}</span>
-                  <X className="h-3 w-3" />
+                  <X className="size-3 text-muted-foreground" />
                 </button>
               );
             })}
             {selectedCompany && (
               <button
+                type="button"
                 onClick={() => setSelectedCompany(null)}
-                className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground hover:bg-muted/70"
+                className="inline-flex h-6 items-center gap-1.5 rounded-[5px] border border-border bg-card px-1.5 text-[11px] text-foreground hover:bg-accent"
               >
                 <span className="max-w-24 truncate">{selectedCompany}</span>
-                <X className="h-3 w-3" />
+                <X className="size-3 text-muted-foreground" />
               </button>
             )}
             <button
+              type="button"
               onClick={clearContactFilters}
               className="px-1 text-[11px] text-muted-foreground hover:text-foreground"
             >
@@ -396,17 +384,28 @@ export function ConversationList({
           every conversation instead of shrinking to the remaining
           space — the list then overflows and gets clipped by the
           parent's overflow-hidden with no scrollbar (issue #229). */}
-      <ScrollArea className="min-h-0 flex-1">
+      <ScrollArea className="min-h-0 flex-1 border-t border-border">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <div>
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div key={i} className="flex items-start gap-3 px-4 py-3">
+                <Skeleton className="size-8 rounded-full" />
+                <div className="flex-1 space-y-2 pt-0.5">
+                  <Skeleton className="h-3 w-2/5" />
+                  <Skeleton className="h-3 w-4/5" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="px-4 py-12 text-center">
-            <p className="text-sm text-muted-foreground">{t("noConversations")}</p>
-          </div>
+          <EmptyState
+            size="sm"
+            icon={InboxIcon}
+            title={t("noConversations")}
+            description={hasSearchOrFilter ? t("noMatchHint") : t("noConversationsHint")}
+          />
         ) : (
-          <div className="flex flex-col">
+          <div className="flex flex-col py-1">
             {filtered.map((conv) => (
               <ConversationItem
                 key={conv.id}
@@ -438,63 +437,78 @@ function ConversationItem({
 }: ConversationItemProps) {
   const contact = conversation.contact;
   const displayName = contact?.name || contact?.phone || t("unknown");
-  const initials = displayName.charAt(0).toUpperCase();
+  const initials = initialOf(displayName);
 
   const handleClick = useCallback(() => {
     onSelect(conversation);
   }, [onSelect, conversation]);
 
   const timeAgo = conversation.last_message_at
-    ? formatDistanceToNow(new Date(conversation.last_message_at), {
-        addSuffix: false,
-      })
+    ? formatDistanceToNowStrict(new Date(conversation.last_message_at))
+        .replace(/ seconds?/, "s")
+        .replace(/ minutes?/, "m")
+        .replace(/ hours?/, "h")
+        .replace(/ days?/, "d")
+        .replace(/ months?/, "mo")
+        .replace(/ years?/, "y")
     : "";
+  const unread = conversation.unread_count > 0;
 
   return (
     <button
+      type="button"
       onClick={handleClick}
+      aria-current={isActive ? "true" : undefined}
       className={cn(
-        "flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50",
-        isActive && "border-l-2 border-primary bg-muted/70"
+        "mx-1.5 flex w-[calc(100%-0.75rem)] cursor-pointer items-start gap-3 rounded-md px-2.5 py-2.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        isActive ? "bg-accent" : "hover:bg-muted/60",
       )}
     >
-      {/* Avatar */}
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-foreground">
+      <Avatar className="mt-0.5 size-8">
         {contact?.avatar_url ? (
-          <img
-            src={contact.avatar_url}
-            alt={displayName}
-            className="h-10 w-10 rounded-full object-cover"
-          />
-        ) : (
-          initials
-        )}
-      </div>
+          <AvatarImage src={contact.avatar_url} alt="" />
+        ) : null}
+        <AvatarFallback>{initials}</AvatarFallback>
+      </Avatar>
 
-      {/* Content */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-medium text-foreground">
+          <span
+            className={cn(
+              "truncate text-[13px] text-foreground",
+              unread ? "font-semibold" : "font-medium",
+            )}
+          >
             {displayName}
           </span>
-          <span className="shrink-0 text-[10px] text-muted-foreground">{timeAgo}</span>
+          <span
+            className={cn(
+              "shrink-0 text-[11px] tabular-nums",
+              unread ? "font-medium text-foreground" : "text-subtle-foreground",
+            )}
+          >
+            {timeAgo}
+          </span>
         </div>
         <div className="mt-0.5 flex items-center justify-between gap-2">
-          <p className="truncate text-xs text-muted-foreground">
+          <p
+            className={cn(
+              "truncate text-xs",
+              unread ? "text-foreground/80" : "text-muted-foreground",
+            )}
+          >
             {conversation.last_message_text || t("noMessagesYet")}
           </p>
           <div className="flex shrink-0 items-center gap-1.5">
-            {conversation.unread_count > 0 && (
-              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+            {unread && (
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground tabular-nums">
                 {conversation.unread_count}
               </span>
             )}
             <span
-              className={cn(
-                "h-2 w-2 rounded-full",
-                STATUS_COLORS[conversation.status]
-              )}
+              className={cn("size-1.5 rounded-full", STATUS_COLORS[conversation.status])}
               title={conversation.status}
+              aria-label={conversation.status}
             />
           </div>
         </div>

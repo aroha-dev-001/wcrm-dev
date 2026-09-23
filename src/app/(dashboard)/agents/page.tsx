@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Bot, Sparkles, Settings2, BarChart3 } from 'lucide-react';
+import { Page, PageBody, PageHeader } from '@/components/layout/page';
+import { LoadingState } from '@/components/ui/spinner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { AiPlayground } from '@/components/agents/ai-playground';
 import { AiUsageCard } from '@/components/agents/ai-usage';
@@ -39,52 +40,46 @@ export default function AgentsPage() {
   }, []);
 
   return (
-    <div>
-      <div className="flex items-center gap-2">
-        <Bot className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          {t('title')}
-        </h1>
-      </div>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {t('description')}
-      </p>
+    <Page>
+      <Tabs
+        value={tab}
+        onValueChange={(v) => setTab(v as Tab)}
+        className="flex flex-1 flex-col gap-0"
+      >
+        <PageHeader title={t('title')} description={t('description')}>
+          {decided ? (
+            <TabsList variant="line" className="-mb-px border-b-0">
+              <TabsTrigger value="playground">{t('tabPlayground')}</TabsTrigger>
+              <TabsTrigger value="setup">{t('tabSetup')}</TabsTrigger>
+              {canViewUsage && (
+                <TabsTrigger value="usage">{t('tabUsage')}</TabsTrigger>
+              )}
+            </TabsList>
+          ) : null}
+        </PageHeader>
 
-      {decided && (
-        <Tabs
-          value={tab}
-          onValueChange={(v) => setTab(v as Tab)}
-          className="mt-6"
-        >
-          <TabsList>
-            <TabsTrigger value="playground">
-              <Sparkles className="mr-1.5 h-4 w-4" /> {t('tabPlayground')}
-            </TabsTrigger>
-            <TabsTrigger value="setup">
-              <Settings2 className="mr-1.5 h-4 w-4" /> {t('tabSetup')}
-            </TabsTrigger>
-            {canViewUsage && (
-              <TabsTrigger value="usage">
-                <BarChart3 className="mr-1.5 h-4 w-4" /> {t('tabUsage')}
-              </TabsTrigger>
-            )}
-          </TabsList>
+        <PageBody>
+          {!decided ? (
+            <LoadingState />
+          ) : (
+            <>
+              <TabsContent value="playground">
+                <AiPlayground onGoToSetup={() => setTab('setup')} />
+              </TabsContent>
 
-          <TabsContent value="playground" className="mt-4">
-            <AiPlayground onGoToSetup={() => setTab('setup')} />
-          </TabsContent>
+              <TabsContent value="setup" className="max-w-3xl">
+                <AiConfig />
+              </TabsContent>
 
-          <TabsContent value="setup" className="mt-4">
-            <AiConfig />
-          </TabsContent>
-
-          {canViewUsage && (
-            <TabsContent value="usage" className="mt-4">
-              <AiUsageCard />
-            </TabsContent>
+              {canViewUsage && (
+                <TabsContent value="usage" className="max-w-4xl">
+                  <AiUsageCard />
+                </TabsContent>
+              )}
+            </>
           )}
-        </Tabs>
-      )}
-    </div>
+        </PageBody>
+      </Tabs>
+    </Page>
   );
 }

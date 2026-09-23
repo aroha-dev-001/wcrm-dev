@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Sparkles, CheckCircle2, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, CheckCircle2, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { canEditSettings } from '@/lib/auth/roles';
 import { Button } from '@/components/ui/button';
@@ -232,9 +232,8 @@ export function AiConfig() {
 
   if (loading || profileLoading) {
     return (
-      <div className="flex items-center justify-center py-16 text-muted-foreground">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('loadFailed')} {/* Re-using label or a global one, wait, loading is better. Let's use useTranslations from overview or just hardcode Loading... actually I should add loading to aiConfig */}
-        {/* Wait, I didn't add loading to aiConfig. I'll just use loading. */}
+      <div className="flex items-center justify-center gap-2 py-16 text-[13px] text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" /> {t('loading')}
       </div>
     );
   }
@@ -257,8 +256,8 @@ export function AiConfig() {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Sparkles className="h-4 w-4 text-primary" /> {t('providerAndKey')}
+            <CardTitle>
+              {t('providerAndKey')}
             </CardTitle>
             <CardDescription>
               {t('encryptionNotice')}
@@ -383,7 +382,7 @@ export function AiConfig() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">{t('behaviour')}</CardTitle>
+            <CardTitle>{t('behaviour')}</CardTitle>
             <CardDescription>
               {t('behaviourDesc')}
             </CardDescription>

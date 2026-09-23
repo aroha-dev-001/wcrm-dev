@@ -275,13 +275,13 @@ export function MembersTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="size-6 animate-spin text-primary" />
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <section className="animate-in fade-in-50 space-y-6 duration-200">
+    <section className="space-y-6">
       <SettingsPanelHead
         title={t('title')}
         description={t('description')}
@@ -360,7 +360,7 @@ export function MembersTab() {
                                 alt={member.full_name || t('memberAlt')}
                               />
                             ) : null}
-                            <AvatarFallback className="bg-primary/10 text-sm font-medium text-primary">
+                            <AvatarFallback>
                               {(member.full_name || member.email || 'U')
                                 .charAt(0)
                                 .toUpperCase()}
@@ -386,7 +386,7 @@ export function MembersTab() {
                           {member.full_name || t('unnamed')}
                         </span>
                         {isSelf && (
-                          <Badge className="bg-muted text-muted-foreground border-border text-[10px] uppercase tracking-wide">
+                          <Badge>
                             {t('you')}
                           </Badge>
                         )}
@@ -425,7 +425,7 @@ export function MembersTab() {
                         }
                       >
                         <SelectTrigger
-                          className="w-32 bg-muted border-border text-foreground"
+                          className="w-32"
                           disabled={isBusy}
                         >
                           <SelectValue>{tRoles(member.role)}</SelectValue>
@@ -460,7 +460,7 @@ export function MembersTab() {
                         size="sm"
                         onClick={() => setRemovingMember(member)}
                         disabled={isBusy}
-                        className="border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:border-red-500/60 hover:text-red-200"
+                        className="border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive"
                       >
                         <Trash2 className="size-4" />
                       </Button>
@@ -545,7 +545,7 @@ export function MembersTab() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleRevoke(inv)}
-                        className="border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:border-red-500/60 hover:text-red-200"
+                        className="border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive"
                       >
                         <MailX className="size-4" />
                         {t('revoke')}
@@ -572,31 +572,30 @@ export function MembersTab() {
           if (!open) setRemovingMember(null);
         }}
       >
-        <DialogContent className="bg-popover border-border sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-popover-foreground">
-              <AlertTriangle className="size-4 text-amber-400" />
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="size-4 text-warning" />
               {t('removeDialogTitle')}
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            <DialogDescription>
               {t.rich('removeDialogDesc', { 
                 name: removingMember?.full_name || t('unnamed'),
                 bold: (chunks: React.ReactNode) => <strong>{chunks}</strong>
               })}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="bg-popover border-border">
+          <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setRemovingMember(null)}
-              className="border-border text-muted-foreground hover:bg-muted"
             >
               {t('cancel')}
             </Button>
             <Button
               onClick={handleRemove}
               disabled={!!pendingMemberAction}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-white"
             >
               {pendingMemberAction ? (
                 <>

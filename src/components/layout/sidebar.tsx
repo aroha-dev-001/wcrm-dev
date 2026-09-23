@@ -3,145 +3,96 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
-import { useTotalUnread } from "@/hooks/use-total-unread";
-import { useUnreadNotifications } from "@/hooks/use-unread-notifications";
+import { useTranslations } from "next-intl";
 import {
-  Bell,
-  Bot,
-  Crown,
-  GitBranch,
-  LayoutDashboard,
+  Check,
+  ChevronsUpDown,
+  KeyRound,
   LogOut,
-  MessageSquare,
-  Radio,
+  Monitor,
+  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PlugZap,
+  Search,
   Settings,
-  Shield,
+  Sun,
   User,
-  UserCog,
-  Users,
   UsersRound,
-  Workflow,
   X,
-  Zap,
 } from "lucide-react";
-import type { AccountRole } from "@/lib/auth/roles";
 
-// Per-role chip metadata used in the sidebar's account strip + the
-// Members tab roster. Keeping this near both consumers in a single
-// place avoids drift between the two surfaces — when a designer
-// wants to recolour "agent" rows, this is the one diff.
-const ROLE_CHIP: Record<
-  AccountRole,
-  { icon: typeof Crown; labelKey: string; className: string }
-> = {
-  owner: {
-    icon: Crown,
-    labelKey: "roleOwner",
-    // Amber: scarce, immutable, "the boss" — gets visual emphasis.
-    className:
-      "border-amber-500/40 bg-amber-500/10 text-amber-300",
-  },
-  admin: {
-    icon: Shield,
-    labelKey: "roleAdmin",
-    // Primary-tinted: significant but not as scarce as owner.
-    className:
-      "border-primary/40 bg-primary/10 text-primary",
-  },
-  agent: {
-    icon: UserCog,
-    labelKey: "roleAgent",
-    // Neutral slate: the operational default.
-    className:
-      "border-border bg-muted text-foreground",
-  },
-  viewer: {
-    icon: User,
-    labelKey: "roleViewer",
-    // Muted slate: read-only role; visually quieter than agent.
-    className:
-      "border-border bg-card text-muted-foreground",
-  },
-};
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { cn, initialOf } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { useTheme } from "@/hooks/use-theme";
+import type { ModePreference } from "@/lib/themes";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-interface NavItem {
-  href: string;
-  labelKey: string;
-  icon: typeof LayoutDashboard;
-  /**
-   * When true, the nav row renders a small "Beta" chip after the label.
-   * Purely informational — doesn't affect routing or access.
-   */
-  beta?: boolean;
-}
-
-const navItems: NavItem[] = [
-  { href: "/dashboard", labelKey: "dashboard", icon: LayoutDashboard },
-  { href: "/inbox", labelKey: "inbox", icon: MessageSquare },
-  { href: "/notifications", labelKey: "notifications", icon: Bell },
-  { href: "/contacts", labelKey: "contacts", icon: Users },
-  { href: "/pipelines", labelKey: "pipelines", icon: GitBranch },
-  { href: "/broadcasts", labelKey: "broadcasts", icon: Radio },
-  { href: "/automations", labelKey: "automations", icon: Zap },
-  { href: "/flows", labelKey: "flows", icon: Workflow, beta: true },
-  { href: "/agents", labelKey: "aiAgents", icon: Bot },
-];
-
-const bottomNavItems = [
-  { href: "/settings", labelKey: "settings", icon: Settings },
-];
+import { Kbd } from "@/components/ui/kbd";
+import { ROLE_META } from "@/components/settings/role-meta";
+import { useCommandMenu } from "./command-menu";
+import {
+  NAV_GROUPS,
+  SETTINGS_NAV_ITEM,
+  isNavItemActive,
+  type NavItem,
+} from "./nav-config";
 
 interface SidebarProps {
-  /** Controlled on mobile by the Header's hamburger button. Ignored on lg+. */
+  /** Mobile drawer state, controlled by the shell. Ignored on lg+. */
   open?: boolean;
   onClose?: () => void;
+  /** Desktop icon-only mode. */
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
+  /** Live counters, owned by the shell (one realtime subscription each). */
+  unreadConversations?: number;
+  unreadNotifications?: number;
 }
 
-import { useTranslations } from "next-intl";
+const THEME_OPTIONS: { value: ModePreference; icon: typeof Sun; key: string }[] = [
+  { value: "light", icon: Sun, key: "themeLight" },
+  { value: "dark", icon: Moon, key: "themeDark" },
+  { value: "system", icon: Monitor, key: "themeSystem" },
+];
 
-export function Sidebar({ open = false, onClose }: SidebarProps) {
+export function Sidebar({
+  open = false,
+  onClose,
+  collapsed = false,
+  onToggleCollapsed,
+  unreadConversations: totalUnread = 0,
+  unreadNotifications = 0,
+}: SidebarProps) {
   const t = useTranslations("Sidebar");
+  const tRoles = useTranslations("Settings.roles");
+  const tSections = useTranslations("Settings.sections");
   const pathname = usePathname();
-  const { profile, profileLoading, account, accountRole, signOut } = useAuth();
-  const totalUnread = useTotalUnread();
-  const unreadNotifications = useUnreadNotifications();
-  // Only surface the account-name strip when it actually carries
-  // information. A solo user's personal account is named after them
-  // (the 017 signup trigger seeds it from `full_name`), so showing it
-  // here would just duplicate the user name in the footer below. Once
-  // the account is renamed or the user joins a shared account, the
-  // name diverges and the strip becomes meaningful — that's the signal
-  // we gate on. Wait for the profile fetch to settle first, otherwise
-  // the strip flashes in once the row resolves (a layout jump).
-  const showAccountStrip =
-    !profileLoading &&
-    !!account?.name &&
-    account.name !== profile?.full_name;
+  const { profile, account, accountRole, signOut } = useAuth();
+  const { modePreference, setMode } = useTheme();
+  const { open: openCommandMenu } = useCommandMenu();
 
-  // Close the drawer when route changes — users opened it to navigate,
-  // so once they pick a destination the drawer should get out of the way.
+  // Collapsed styling only applies on desktop; the mobile drawer is
+  // always full width.
+  const c = collapsed;
+
+  // Close the drawer when the route changes — users opened it to
+  // navigate, so once they pick a destination it should get out of the way.
   useEffect(() => {
     onClose?.();
     // Only pathname drives this — onClose identity doesn't need to re-run it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
-  // Lock body scroll and allow Escape to close while the drawer is open on
-  // mobile. No-ops on desktop because the sidebar isn't positioned there.
+  // Lock body scroll and allow Escape to close while the mobile drawer is open.
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -156,240 +107,249 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
     };
   }, [open, onClose]);
 
+  const counterFor = (item: NavItem): number => {
+    if (item.counter === "inbox") return totalUnread;
+    if (item.counter === "notifications") return unreadNotifications;
+    return 0;
+  };
+
+  const workspaceName = account?.name || t("productName");
+  const displayName = profile?.full_name || profile?.email || t("defaultUser");
+  const initial = initialOf(profile?.full_name || profile?.email, "U");
+  const roleMeta = accountRole ? ROLE_META[accountRole] : null;
+
   return (
     <>
-      {/* Backdrop — only exists on mobile and only when open. Clicking
-          it closes the drawer. Hidden from lg+ since the sidebar is
-          part of the main flex row there. */}
+      {/* Mobile backdrop */}
       <button
         type="button"
         aria-label={t("closeMenu")}
+        tabIndex={open ? 0 : -1}
         onClick={onClose}
         className={cn(
-          "fixed inset-0 z-30 bg-background/70 backdrop-blur-sm transition-opacity lg:hidden",
-          open
-            ? "pointer-events-auto opacity-100"
-            : "pointer-events-none opacity-0",
+          "fixed inset-0 z-30 bg-black/40 transition-opacity lg:hidden",
+          open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         )}
       />
 
       <aside
-        className={cn(
-          // Mobile: fixed drawer that slides in from the left.
-          "fixed inset-y-0 left-0 z-40 flex h-full w-64 flex-col border-r border-border bg-card",
-          "transition-transform duration-200 ease-out will-change-transform",
-          open ? "translate-x-0" : "-translate-x-full",
-          // Desktop: static, always visible — reset all the mobile framing.
-          "lg:static lg:z-0 lg:w-60 lg:translate-x-0 lg:transition-none",
-        )}
         aria-label={t("primaryNav")}
+        data-collapsed={c ? "true" : undefined}
+        className={cn(
+          "group/sidebar fixed inset-y-0 left-0 z-40 flex h-full w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground",
+          "transition-transform duration-200 ease-out",
+          open ? "translate-x-0" : "-translate-x-full",
+          "lg:static lg:z-0 lg:translate-x-0 lg:transition-[width] lg:duration-150",
+          c ? "lg:w-[52px]" : "lg:w-60",
+        )}
       >
-        {/* Logo row. On mobile we put a close button here; on desktop the
-            close button is hidden since the sidebar is always-visible. */}
-        <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <MessageSquare className="h-4 w-4" />
-            </div>
-            <span className="text-sm font-semibold text-foreground">
-              {t("title")}
-            </span>
-          </Link>
+        {/* Workspace row */}
+        <div className={cn("flex h-12 shrink-0 items-center gap-1 px-2", c && "lg:justify-center lg:px-0")}>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label={t("workspaceMenu")}
+              className={cn(
+                "flex h-8 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1.5 text-left outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring/40 data-popup-open:bg-sidebar-accent",
+                c && "lg:w-8 lg:flex-none lg:justify-center lg:px-0",
+              )}
+            >
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-[5px] bg-foreground text-[11px] font-semibold text-background">
+                {initialOf(workspaceName, "W")}
+              </span>
+              <span className={cn("truncate text-[13px] font-semibold text-foreground", c && "lg:hidden")}>
+                {workspaceName}
+              </span>
+              <ChevronsUpDown className={cn("ml-auto size-3.5 shrink-0 text-muted-foreground", c && "lg:hidden")} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={4} className="w-60">
+              <div className="flex items-center gap-2.5 px-2 py-2">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground text-xs font-semibold text-background">
+                  {initialOf(workspaceName, "W")}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-medium text-foreground">{workspaceName}</p>
+                  {roleMeta && accountRole ? (
+                    <p className="text-xs text-muted-foreground">{tRoles(accountRole)}</p>
+                  ) : null}
+                </div>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem render={<Link href="/settings" />}>
+                <Settings />
+                {t("workspaceSettings")}
+              </DropdownMenuItem>
+              <DropdownMenuItem render={<Link href="/settings?tab=members" />}>
+                <UsersRound />
+                {t("teamMembers")}
+              </DropdownMenuItem>
+              <DropdownMenuItem render={<Link href="/settings?tab=whatsapp" />}>
+                <PlugZap />
+                {t("whatsappConnection")}
+              </DropdownMenuItem>
+              <DropdownMenuItem render={<Link href="/settings?tab=api" />}>
+                <KeyRound />
+                {tSections("api")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Collapse (desktop) / close (mobile) */}
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            aria-label={c ? t("expand") : t("collapse")}
+            title={c ? t("expand") : t("collapse")}
+            className={cn(
+              "hidden size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none lg:flex",
+              c && "lg:hidden",
+            )}
+          >
+            <PanelLeftClose className="size-4" />
+          </button>
           <button
             type="button"
             onClick={onClose}
             aria-label={t("closeMenu")}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
+            className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground lg:hidden"
           >
-            <X className="h-5 w-5" />
+            <X className="size-4" />
           </button>
         </div>
 
-        {/* Main navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <ul className="flex flex-col gap-1">
-            {navItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/dashboard" && pathname.startsWith(item.href));
+        {/* Search / command menu */}
+        <div className={cn("px-2 pb-1", c && "lg:px-0 lg:flex lg:justify-center")}>
+          <button
+            type="button"
+            onClick={openCommandMenu}
+            title={t("search")}
+            className={cn(
+              "flex h-8 w-full cursor-pointer items-center gap-2 rounded-md border border-sidebar-border bg-background px-2 text-[13px] text-muted-foreground shadow-xs transition-colors hover:border-border-strong hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none dark:bg-sidebar-accent/60",
+              c && "lg:size-8 lg:justify-center lg:px-0",
+            )}
+          >
+            <Search className="size-3.5 shrink-0" />
+            <span className={cn("flex-1 text-left", c && "lg:hidden")}>{t("search")}</span>
+            <Kbd className={cn("hidden bg-transparent sm:inline-flex", c && "lg:hidden")}>⌘K</Kbd>
+          </button>
+        </div>
 
-              const showUnreadDot =
-                item.href === "/inbox" && totalUnread > 0 && !isActive;
-
-              // Unlike the inbox dot, the notifications count stays visible
-              // even while the page is active — it reflects unread state
-              // (cleared by marking notifications read), not "currently
-              // viewing this section".
-              const showNotificationBadge =
-                item.href === "/notifications" && unreadNotifications > 0;
-
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      // Taller on mobile so fingers can hit the row reliably (≥44px).
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span className="flex-1">{t(item.labelKey as string)}</span>
-                    {item.beta && (
-                      <span
-                        aria-label={t("beta")}
-                        className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-300"
-                      >
-                        {t("beta")}
-                      </span>
-                    )}
-                    {showUnreadDot && (
-                      <span
-                        aria-label={t("unreadConversations", { count: totalUnread })}
-                        className="relative flex h-2 w-2"
-                      >
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-                      </span>
-                    )}
-                    {showNotificationBadge && (
-                      <span
-                        aria-label={t("unreadNotifications", { count: unreadNotifications })}
-                        className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground"
-                      >
-                        {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-
-          <div className="my-4 border-t border-border" />
-
-          <ul className="flex flex-col gap-1">
-            {bottomNavItems.map((item) => {
-              const isActive = pathname.startsWith(item.href);
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {t(item.labelKey as string)}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+        {/* Navigation */}
+        <nav className={cn("flex-1 overflow-y-auto px-2 pb-3", c && "lg:px-0")}>
+          {NAV_GROUPS.map((group) => (
+            <div key={group.id} className="pt-3 first:pt-2">
+              {group.labelKey ? (
+                <div
+                  className={cn(
+                    "px-2 pb-1 text-[11px] font-medium text-subtle-foreground",
+                    c && "lg:hidden",
+                  )}
+                >
+                  {t(group.labelKey)}
+                </div>
+              ) : null}
+              {c && group.labelKey ? (
+                <div className="mx-auto mb-2 hidden h-px w-6 bg-sidebar-border lg:block" />
+              ) : null}
+              <ul className="flex flex-col gap-px">
+                {group.items.map((item) => (
+                  <li key={item.href}>
+                    <NavLink
+                      item={item}
+                      label={t(item.labelKey)}
+                      betaLabel={t("beta")}
+                      active={isNavItemActive(pathname, item.href)}
+                      count={counterFor(item)}
+                      countLabel={
+                        item.counter === "inbox"
+                          ? t("unreadConversations", { count: totalUnread })
+                          : item.counter === "notifications"
+                            ? t("unreadNotifications", { count: unreadNotifications })
+                            : undefined
+                      }
+                      collapsed={c}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </nav>
 
-        {/* User section */}
-        <div className="shrink-0 border-t border-border p-3">
-          {/* Account name display — surfaced only when the account
-              name differs from the user's own name (see
-              `showAccountStrip`). For a default solo account the two
-              match, so we hide it to avoid duplicating the user name
-              below; for renamed or shared accounts it tells the user
-              which account they're acting in. */}
-          {showAccountStrip && account?.name ? (
-            <div className="mb-2 flex items-center gap-2 px-3 text-xs text-muted-foreground">
-              <UsersRound className="size-3.5 shrink-0" />
-              {/* `title=` exposes the full name on hover when it
-                  gets truncated (long account names + narrow
-                  sidebars). Cheap a11y win. */}
-              <span className="truncate" title={account.name}>
-                {account.name}
-              </span>
-              {accountRole ? (
-                // Always render the chip — owners used to be
-                // invisible here, which made them indistinguishable
-                // from admins at a glance. Now everyone sees their
-                // role (with a colour cue) regardless of tier.
-                (() => {
-                  const meta = ROLE_CHIP[accountRole];
-                  const Icon = meta.icon;
-                  return (
-                    <span
-                      className={`ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider ${meta.className}`}
-                    >
-                      <Icon className="size-3" />
-                      {t(meta.labelKey as string)}
-                    </span>
-                  );
-                })()
-              ) : null}
-            </div>
+        {/* Footer: settings + account */}
+        <div className={cn("shrink-0 border-t border-sidebar-border px-2 py-2", c && "lg:px-0")}>
+          <NavLink
+            item={SETTINGS_NAV_ITEM}
+            label={t(SETTINGS_NAV_ITEM.labelKey)}
+            betaLabel={t("beta")}
+            active={isNavItemActive(pathname, SETTINGS_NAV_ITEM.href)}
+            count={0}
+            collapsed={c}
+          />
+          {c ? (
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              aria-label={t("expand")}
+              title={t("expand")}
+              className="mx-auto mt-px hidden size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground lg:flex"
+            >
+              <PanelLeftOpen className="size-4" />
+            </button>
           ) : null}
+
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted/60 focus:bg-muted/60 focus:outline-none data-popup-open:bg-muted/60">
-              <Avatar className="size-8 shrink-0">
+            <DropdownMenuTrigger
+              aria-label={t("accountMenu")}
+              className={cn(
+                "mt-1 flex h-10 w-full cursor-pointer items-center gap-2.5 rounded-md px-1.5 text-left outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring/40 data-popup-open:bg-sidebar-accent",
+                c && "lg:mx-auto lg:size-9 lg:justify-center lg:px-0",
+              )}
+            >
+              <Avatar className="size-7 shrink-0">
                 {profile?.avatar_url ? (
-                  <AvatarImage
-                    src={profile.avatar_url}
-                    alt={profile.full_name ?? t("defaultAvatar")}
-                  />
+                  <AvatarImage src={profile.avatar_url} alt={profile.full_name ?? t("defaultAvatar")} />
                 ) : null}
-                <AvatarFallback className="bg-primary/10 text-sm font-medium text-primary">
-                  {profile?.full_name?.charAt(0)?.toUpperCase() ??
-                    profile?.email?.charAt(0)?.toUpperCase() ??
-                    "U"}
-                </AvatarFallback>
+                <AvatarFallback className="bg-primary-soft text-primary">{initial}</AvatarFallback>
               </Avatar>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">
-                  {profile?.full_name ?? t("defaultUser")}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {profile?.email ?? ""}
-                </p>
+              <div className={cn("min-w-0 flex-1 leading-tight", c && "lg:hidden")}>
+                <p className="truncate text-[13px] font-medium text-foreground">{displayName}</p>
+                {profile?.email ? (
+                  <p className="truncate text-[11px] text-muted-foreground">{profile.email}</p>
+                ) : null}
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              side="top"
-              sideOffset={6}
-              className="min-w-56 bg-popover text-popover-foreground ring-border"
-            >
-              <DropdownMenuItem
-                render={
-                  <Link
-                    href="/settings?tab=profile"
-                    onClick={onClose}
-                    className="text-popover-foreground focus:bg-accent focus:text-accent-foreground"
-                  />
-                }
-              >
-                <User className="size-4" />
+            <DropdownMenuContent align="start" side="top" sideOffset={6} className="w-60">
+              <DropdownMenuItem render={<Link href="/settings?tab=profile" />}>
+                <User />
                 {t("menuProfile")}
               </DropdownMenuItem>
-              <DropdownMenuItem
-                render={
-                  <Link
-                    href="/settings?tab=whatsapp"
-                    onClick={onClose}
-                    className="text-popover-foreground focus:bg-accent focus:text-accent-foreground"
-                  />
-                }
-              >
-                <Settings className="size-4" />
+              <DropdownMenuItem render={<Link href="/settings" />}>
+                <Settings />
                 {t("menuSettings")}
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-border" />
-              <DropdownMenuItem
-                onClick={signOut}
-                className="text-popover-foreground focus:bg-accent focus:text-accent-foreground"
-              >
-                <LogOut className="size-4" />
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>{t("theme")}</DropdownMenuLabel>
+                {THEME_OPTIONS.map((opt) => {
+                  const Icon = opt.icon;
+                  const selected = modePreference === opt.value;
+                  return (
+                    <DropdownMenuItem
+                      key={opt.value}
+                      onClick={() => setMode(opt.value)}
+                      aria-checked={selected}
+                      role="menuitemradio"
+                    >
+                      <Icon />
+                      {t(opt.key)}
+                      {selected ? <Check className="ml-auto size-3.5 text-foreground!" /> : null}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut}>
+                <LogOut />
                 {t("menuSignOut")}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -397,5 +357,69 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         </div>
       </aside>
     </>
+  );
+}
+
+function NavLink({
+  item,
+  label,
+  betaLabel,
+  active,
+  count,
+  countLabel,
+  collapsed,
+}: {
+  item: NavItem;
+  label: string;
+  betaLabel: string;
+  active: boolean;
+  count: number;
+  countLabel?: string;
+  collapsed: boolean;
+}) {
+  const Icon = item.icon;
+  const showCount = count > 0;
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      title={collapsed ? label : undefined}
+      className={cn(
+        "group/nav relative flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        active
+          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          : "text-sidebar-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
+        collapsed && "lg:mx-auto lg:size-8 lg:justify-center lg:px-0",
+      )}
+    >
+      <Icon
+        className={cn(
+          "size-4 shrink-0 transition-colors",
+          active ? "text-foreground" : "text-muted-foreground group-hover/nav:text-foreground",
+        )}
+      />
+      <span className={cn("flex-1 truncate", collapsed && "lg:hidden")}>{label}</span>
+      {item.beta ? (
+        <span
+          className={cn(
+            "rounded-[4px] border border-border px-1 py-px text-[10px] leading-none font-medium text-muted-foreground",
+            collapsed && "lg:hidden",
+          )}
+        >
+          {betaLabel}
+        </span>
+      ) : null}
+      {showCount ? (
+        <span
+          aria-label={countLabel}
+          className={cn(
+            "flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground tabular-nums",
+            collapsed && "lg:absolute lg:-top-0.5 lg:-right-0.5 lg:h-3.5 lg:min-w-3.5 lg:px-0.5 lg:text-[9px]",
+          )}
+        >
+          {count > 99 ? "99+" : count}
+        </span>
+      ) : null}
+    </Link>
   );
 }

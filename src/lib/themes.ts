@@ -32,18 +32,26 @@ export const STORAGE_KEY = "wacrm.theme";
  *
  * The CSS variables live in `src/app/globals.css` under
  * `html[data-mode="..."]` blocks (neutral surfaces only). Applied
- * at runtime via `document.documentElement.dataset.mode`. Dark is
- * the historical default and stays the app's identity; light is the
- * opt-in eye-strain-friendly alternative.
+ * at runtime via `document.documentElement.dataset.mode`.
  *
- * Persisted under its own localStorage key so it composes freely
- * with the accent choice (you can run Violet-light or Violet-dark).
+ * The user picks a *preference* — light, dark, or "system" (follow the
+ * OS) — which resolves to one of the two concrete modes. Persisted
+ * under its own localStorage key so it composes freely with the
+ * accent choice. Stored values from before "system" existed ("light" /
+ * "dark") remain valid preferences.
  */
 export const MODES = ["light", "dark"] as const;
 
 export type Mode = (typeof MODES)[number];
 
-export const DEFAULT_MODE: Mode = "dark";
+export const MODE_PREFERENCES = ["light", "dark", "system"] as const;
+
+export type ModePreference = (typeof MODE_PREFERENCES)[number];
+
+/** Server-rendered mode before the boot script resolves the real one. */
+export const DEFAULT_MODE: Mode = "light";
+
+export const DEFAULT_MODE_PREFERENCE: ModePreference = "system";
 
 export const MODE_STORAGE_KEY = "wacrm.mode";
 
@@ -51,6 +59,22 @@ export function isMode(value: unknown): value is Mode {
   return (
     typeof value === "string" && (MODES as ReadonlyArray<string>).includes(value)
   );
+}
+
+export function isModePreference(value: unknown): value is ModePreference {
+  return (
+    typeof value === "string" &&
+    (MODE_PREFERENCES as ReadonlyArray<string>).includes(value)
+  );
+}
+
+/** Resolve a preference to the concrete mode for this device. */
+export function resolveMode(pref: ModePreference): Mode {
+  if (pref !== "system") return pref;
+  if (typeof window === "undefined" || !window.matchMedia) return DEFAULT_MODE;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
 export interface ThemeMeta {
@@ -70,32 +94,32 @@ export const THEMES: ReadonlyArray<ThemeMeta> = [
   {
     id: "violet",
     name: "Violet",
-    tagline: "The default — confident, slightly playful.",
-    swatch: "oklch(0.526 0.247 293)",
+    tagline: "The default — a calm indigo-violet.",
+    swatch: "oklch(0.52 0.18 283)",
   },
   {
     id: "emerald",
     name: "Emerald",
     tagline: "Growth-coded, nods at messaging without copying WhatsApp green.",
-    swatch: "oklch(0.62 0.16 162)",
+    swatch: "oklch(0.54 0.12 162)",
   },
   {
     id: "cobalt",
     name: "Cobalt",
     tagline: "Clean B2B-SaaS blue — calm and product-y.",
-    swatch: "oklch(0.585 0.2 254)",
+    swatch: "oklch(0.53 0.17 256)",
   },
   {
     id: "amber",
     name: "Amber",
     tagline: "Warm and friendly — feels good for SMB teams.",
-    swatch: "oklch(0.745 0.16 65)",
+    swatch: "oklch(0.62 0.15 58)",
   },
   {
     id: "rose",
     name: "Rose",
     tagline: "Bold and modern — D2C, creator-economy, lifestyle.",
-    swatch: "oklch(0.645 0.22 16)",
+    swatch: "oklch(0.57 0.19 14)",
   },
 ];
 

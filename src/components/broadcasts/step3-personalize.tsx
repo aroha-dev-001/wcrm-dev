@@ -236,18 +236,18 @@ export function Step3Personalize({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-foreground">{t('personalize.title')}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h2 className="text-[15px] font-semibold text-foreground">{t('personalize.title')}</h2>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">
           {t('personalize.subtitle')}
         </p>
       </div>
 
       {mediaHeaderType && (
-        <div className="rounded-xl border border-border bg-card/50 p-4">
+        <div className="rounded-md border border-border bg-card-2 p-3.5">
           <div className="mb-3 flex items-center gap-2">
-            <ImageIcon className="h-4 w-4 text-primary" />
+            <ImageIcon className="h-4 w-4 text-muted-foreground" />
             <p className="text-sm font-medium text-foreground">{t('personalize.headerImage')}</p>
-            <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium uppercase text-primary">
+            <span className="inline-flex items-center rounded-[5px] border border-border bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-foreground">
               {mediaHeaderType}
             </span>
           </div>
@@ -259,7 +259,6 @@ export function Step3Personalize({
             value={headerMediaUrl}
             onChange={(e) => onHeaderMediaUrlChange(e.target.value)}
             placeholder={t('personalize.imageUrlPlaceholder')}
-            className="border-border bg-muted text-foreground placeholder:text-muted-foreground"
           />
           <p className="mt-1.5 text-xs text-muted-foreground">
             {t('personalize.headerImageDesc')}
@@ -275,7 +274,7 @@ export function Step3Personalize({
               />
             )}
           {headerMediaError && (
-            <p className="mt-1.5 text-xs text-amber-300">
+            <p className="mt-1.5 text-xs text-warning">
               {headerMediaError === 'missing'
                 ? t('personalize.mediaUrlRequired')
                 : t('personalize.mediaUrlInvalid')}
@@ -285,8 +284,8 @@ export function Step3Personalize({
       )}
 
       {placeholders.length === 0 && !mediaHeaderType ? (
-        <div className="rounded-xl border border-border bg-card/50 p-6 text-center">
-          <p className="text-sm text-muted-foreground">
+        <div className="rounded-lg border border-border bg-card p-6 text-center">
+          <p className="text-[13px] text-muted-foreground">
             {t('personalize.noPreview')}
           </p>
         </div>
@@ -299,10 +298,10 @@ export function Step3Personalize({
             return (
               <div
                 key={placeholder}
-                className="rounded-xl border border-border bg-card/50 p-4"
+                className="rounded-md border border-border bg-card-2 p-3.5"
               >
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-mono font-medium text-primary">
+                  <span className="inline-flex items-center rounded-[5px] border border-border bg-muted px-1.5 py-0.5 text-xs font-mono font-medium text-primary">
                     {placeholder}
                   </span>
                 </div>
@@ -321,10 +320,10 @@ export function Step3Personalize({
                         })
                       }
                     >
-                      <SelectTrigger className="w-full border-border bg-muted text-foreground">
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="border-border bg-popover">
+                      <SelectContent>
                         <SelectItem value="static">{t('personalize.typeStatic')}</SelectItem>
                         <SelectItem value="field">{t('personalize.typeContact')}</SelectItem>
                         <SelectItem value="custom_field">
@@ -345,7 +344,6 @@ export function Step3Personalize({
                           updateVariable(key, { value: e.target.value })
                         }
                         placeholder={t('personalize.enterValue')}
-                        className="border-border bg-muted text-foreground placeholder:text-muted-foreground"
                       />
                     ) : mapping.type === 'field' ? (
                       <Select
@@ -354,10 +352,10 @@ export function Step3Personalize({
                           updateVariable(key, { value: val || '' })
                         }
                       >
-                        <SelectTrigger className="w-full border-border bg-muted text-foreground">
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder={t('personalize.selectContactField')} />
                         </SelectTrigger>
-                        <SelectContent className="border-border bg-popover">
+                        <SelectContent>
                           {contactFields.map((field) => (
                             <SelectItem key={field.value} value={field.value}>
                               {t(`personalize.fieldMap.${field.labelKey}`)}
@@ -372,7 +370,7 @@ export function Step3Personalize({
                           updateVariable(key, { value: val || '' })
                         }
                       >
-                        <SelectTrigger className="w-full border-border bg-muted text-foreground">
+                        <SelectTrigger className="w-full">
                           <SelectValue
                             placeholder={
                               loadingFields
@@ -383,7 +381,7 @@ export function Step3Personalize({
                             }
                           />
                         </SelectTrigger>
-                        <SelectContent className="border-border bg-popover">
+                        <SelectContent>
                           {customFields.map((f) => (
                             <SelectItem key={f.id} value={f.id}>
                               {f.field_name}
@@ -402,13 +400,13 @@ export function Step3Personalize({
 
       {/* Live Preview — rendered as a WhatsApp-style bubble so the user
           sees approximately what the recipient will see. */}
-      <div className="rounded-xl border border-border bg-card/50 p-4">
+      <div className="rounded-md border border-border bg-card-2 p-3.5">
         <div className="mb-3 flex items-center gap-2">
-          <Eye className="h-4 w-4 text-primary" />
+          <Eye className="h-4 w-4 text-muted-foreground" />
           <p className="text-sm font-medium text-foreground">{t('personalize.preview')}</p>
           <span className="text-xs text-muted-foreground">({previewLabel})</span>
           {loadingPreview && (
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
           )}
         </div>
         <div className="rounded-lg bg-[#0e1a12] p-3">
@@ -421,7 +419,7 @@ export function Step3Personalize({
       </div>
 
       {unmappedKeys.length > 0 && (
-        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+        <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
           {t.rich('personalize.unmappedWarning', {
             keys: unmappedKeys.join(', '),
             mono: (chunks) => <span className="font-mono font-semibold">{chunks}</span>,
@@ -433,7 +431,6 @@ export function Step3Personalize({
         <Button
           variant="outline"
           onClick={onBack}
-          className="border-border text-muted-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           {t('back')}
@@ -441,7 +438,6 @@ export function Step3Personalize({
         <Button
           onClick={onNext}
           disabled={unmappedKeys.length > 0 || headerMediaError !== null}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {t('next')}
           <ArrowRight className="h-4 w-4" />

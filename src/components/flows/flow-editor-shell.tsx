@@ -95,7 +95,7 @@ export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
 
   return (
     <FlowEditorProvider initialFlow={initialFlow} initialNodes={initialNodes}>
-      <div className="flex h-full min-h-0 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col">
         <EditorHeader />
 
         {/* ---- mode row: view toggle + node-type legend ----
@@ -103,11 +103,11 @@ export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
             the legend is lg-only), so there's no empty band above the
             stage on small screens. */}
         {!isMobile && (
-          <div className="flex items-center gap-4 px-6 py-3.5">
+          <div className="flex items-center gap-4 px-4 py-3 sm:px-6">
             <div
               role="group"
               aria-label={t("editorView")}
-              className="inline-flex gap-0.5 rounded-lg border border-border bg-muted p-0.5"
+              className="inline-flex h-8 items-center gap-0.5 rounded-md bg-muted p-0.5"
             >
               <SegButton
                 active={effectiveView === "canvas"}
@@ -126,10 +126,10 @@ export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
               {LEGEND_TYPES.map((t_type) => (
                 <span
                   key={t_type}
-                  className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground"
+                  className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
                 >
                   <span
-                    className="h-2.5 w-2.5 rounded-full"
+                    className="size-2 rounded-full"
                     style={{ background: nodeColors(t_type).solid }}
                   />
                   {t(`nodes.${t_type}.label`)}
@@ -140,7 +140,7 @@ export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
         )}
 
         {/* ---- stage: the active view, owning its own overflow ---- */}
-        <div className="relative mx-6 min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-card-2">
+        <div className="relative mx-4 min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-card-2 sm:mx-6">
           {effectiveView === "canvas" ? (
             <FlowCanvas />
           ) : (
@@ -151,7 +151,7 @@ export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
         </div>
 
         {/* ---- validation / activate-readiness bar ---- */}
-        <div className="px-6 pb-5 pt-3">
+        <div className="px-4 pt-3 pb-4 sm:px-6">
           <ValidationPanel />
         </div>
       </div>
@@ -198,9 +198,9 @@ function SegButton({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium transition-colors",
+        "inline-flex h-full cursor-pointer items-center gap-1.5 rounded-[5px] px-2.5 text-xs font-medium transition-colors",
         active
-          ? "bg-card text-foreground shadow-sm"
+          ? "bg-background text-foreground shadow-xs dark:bg-accent"
           : "text-muted-foreground hover:text-foreground",
       )}
     >

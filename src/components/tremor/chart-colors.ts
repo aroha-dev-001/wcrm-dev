@@ -14,6 +14,19 @@
 export type ColorUtility = "bg" | "stroke" | "fill" | "text"
 
 export const chartColors = {
+  // Theme-token colours — follow the active accent / mode.
+  primary: {
+    bg: "bg-chart-1",
+    stroke: "stroke-chart-1",
+    fill: "fill-chart-1",
+    text: "text-chart-1",
+  },
+  secondary: {
+    bg: "bg-chart-2",
+    stroke: "stroke-chart-2",
+    fill: "fill-chart-2",
+    text: "text-chart-2",
+  },
   blue: {
     bg: "bg-blue-500",
     stroke: "stroke-blue-500",

@@ -10,8 +10,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { THEMES } from '@/lib/themes';
 import { CURRENCIES } from '@/lib/currency';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { cn, initialOf } from '@/lib/utils';
 
 import { SECTION_META, type SettingsSection } from './settings-sections';
 import { SettingsChip, StatusDot } from './settings-chip';
@@ -38,7 +37,7 @@ export function SettingsOverview({
 }) {
   const { user, profile, accountId, accountRole, defaultCurrency, canManageMembers } =
     useAuth();
-  const { mode, theme } = useTheme();
+  const { modePreference, theme } = useTheme();
   const t = useTranslations('Settings.overview');
   const tRoles = useTranslations('Settings.roles');
   const tSections = useTranslations('Settings.sections');
@@ -142,7 +141,7 @@ export function SettingsOverview({
   }, [user?.id, accountId, canManageMembers]);
 
   const displayName = profile?.full_name || profile?.email || t('yourAccount');
-  const initial = (profile?.full_name || profile?.email || 'U').charAt(0).toUpperCase();
+  const initial = initialOf(profile?.full_name || profile?.email, 'U');
   const roleMeta = accountRole ? ROLE_META[accountRole] : null;
   const RoleIcon = roleMeta?.icon;
 
@@ -215,28 +214,28 @@ export function SettingsOverview({
     {
       section: 'appearance',
       loading: false,
-      subtitle: t('appearance', { mode: cap(mode), theme: themeName }),
+      subtitle: t('appearance', { mode: cap(modePreference), theme: themeName }),
     },
   ];
 
   return (
-    <section className="animate-in fade-in-50 duration-200">
+    <section>
       {/* Identity */}
-      <Card className="flex-row items-center gap-4 px-5 py-5">
-        <Avatar size="lg" className="size-14">
+      <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3.5">
+        <Avatar size="lg" className="size-10">
           {profile?.avatar_url ? (
             <AvatarImage src={profile.avatar_url} alt={displayName} />
           ) : null}
-          <AvatarFallback className="bg-primary/10 text-xl text-primary">
+          <AvatarFallback className="bg-primary-soft text-sm text-primary">
             {initial}
           </AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-base font-semibold text-foreground">
+          <div className="truncate text-[13px] font-semibold text-foreground">
             {displayName}
           </div>
           {profile?.email ? (
-            <div className="truncate text-sm text-muted-foreground">
+            <div className="truncate text-xs text-muted-foreground">
               {profile.email}
             </div>
           ) : null}
@@ -247,31 +246,28 @@ export function SettingsOverview({
             {tRoles(accountRole!)}
           </SettingsChip>
         ) : null}
-      </Card>
+      </div>
 
-      {/* Status tiles */}
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {/* Status list */}
+      <ul className="mt-4 divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
         {tiles.map(({ section, loading, subtitle }) => {
           const meta = SECTION_META[section];
           const Icon = meta.icon;
           return (
-            <button
-              key={section}
-              type="button"
-              onClick={() => onSelect(section)}
-              className={cn(
-                'group flex items-start gap-3.5 rounded-xl border border-border bg-card p-4 text-left transition-colors',
-                'hover:border-primary-soft-2 hover:bg-card-2',
-              )}
-            >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
-                <Icon className="size-4" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-foreground">
+            <li key={section}>
+              <button
+                type="button"
+                onClick={() => onSelect(section)}
+                className={cn(
+                  'group flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors',
+                  'hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none',
+                )}
+              >
+                <Icon className="size-4 shrink-0 text-muted-foreground" />
+                <span className="w-40 shrink-0 text-[13px] font-medium text-foreground">
                   {tSections(section)}
                 </span>
-                <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-[13px] text-muted-foreground">
                   {loading ? (
                     <>
                       <Loader2 className="size-3 animate-spin" /> {t('loading')}
@@ -280,12 +276,12 @@ export function SettingsOverview({
                     subtitle
                   )}
                 </span>
-              </span>
-              <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-            </button>
+                <ChevronRight className="size-4 shrink-0 text-subtle-foreground transition-transform group-hover:translate-x-0.5" />
+              </button>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </section>
   );
 }

@@ -11,6 +11,7 @@ import type {
   ActivityItem,
   ConversationsSeriesPoint,
   MetricsBundle,
+  NeedsReplyItem,
   PipelineDonutData,
   PipelineStageSlice,
   ResponseTimeBucket,
@@ -395,4 +396,36 @@ export async function loadActivity(db: DB, limit = 20): Promise<ActivityItem[]> 
   return items
     .sort((a, b) => (a.at > b.at ? -1 : a.at < b.at ? 1 : 0))
     .slice(0, limit)
+}
+
+// --- 6. Needs a reply ---------------------------------------------------
+// Open conversations holding unread customer messages, newest first —
+// the dashboard's "what should I do next" list.
+
+export async function loadNeedsReply(db: DB, limit = 6): Promise<NeedsReplyItem[]> {
+  const { data, error } = await db
+    .from('conversations')
+    .select(
+      'id, unread_count, last_message_text, last_message_at, contact:contacts(name, phone, wa_username, wa_user_id, avatar_url, company)',
+    )
+    .eq('status', 'open')
+    .gt('unread_count', 0)
+    .order('last_message_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  type Row = {
+    id: string
+    unread_count: number | null
+    last_message_text: string | null
+    last_message_at: string | null
+    contact: NeedsReplyItem['contact'] | NeedsReplyItem['contact'][]
+  }
+  return ((data ?? []) as unknown as Row[]).map((r) => ({
+    id: r.id,
+    unreadCount: r.unread_count ?? 0,
+    lastMessageText: r.last_message_text,
+    lastMessageAt: r.last_message_at,
+    // PostgREST returns a to-one embed as an object; normalise defensively.
+    contact: Array.isArray(r.contact) ? (r.contact[0] ?? null) : r.contact,
+  }))
 }

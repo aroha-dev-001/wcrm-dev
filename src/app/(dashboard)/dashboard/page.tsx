@@ -1,20 +1,28 @@
 "use client"
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Briefcase,
+  ChevronDown,
+  Plus,
+  Radio,
+  UserPlus,
+  Zap,
+} from 'lucide-react'
+
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { formatCurrency } from '@/lib/currency'
-import {
-  MessageSquare,
-  UserPlus,
-  DollarSign,
-  Send,
-} from 'lucide-react'
-
+import { cn } from '@/lib/utils'
 import {
   loadActivity,
   loadConversationsSeries,
   loadMetrics,
+  loadNeedsReply,
   loadPipelineDonut,
   loadResponseTime,
 } from '@/lib/dashboard/queries'
@@ -22,24 +30,32 @@ import type {
   ActivityItem,
   ConversationsSeriesPoint,
   MetricsBundle,
+  NeedsReplyItem,
   PipelineDonutData,
   ResponseTimeSummary,
 } from '@/lib/dashboard/types'
 
-import { MetricCard } from '@/components/dashboard/metric-card'
-import { SkeletonCard } from '@/components/dashboard/skeleton'
-import { QuickActions } from '@/components/dashboard/quick-actions'
+import { Page, PageBody, PageHeader } from '@/components/layout/page'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Stat, StatStrip } from '@/components/ui/stat-strip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { ConversationsChart } from '@/components/dashboard/conversations-chart'
-import { PipelineDonut } from '@/components/dashboard/pipeline-donut'
+import { PipelineBreakdown } from '@/components/dashboard/pipeline-breakdown'
 import { ResponseTimeChart } from '@/components/dashboard/response-time-chart'
 import { ActivityFeed } from '@/components/dashboard/activity-feed'
-
-import { useTranslations } from 'next-intl'
+import { NeedsReply } from '@/components/dashboard/needs-reply'
 
 type RangeDays = 7 | 30 | 90
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard.page')
+  const tQuick = useTranslations('Dashboard.quickActions')
   const { defaultCurrency } = useAuth()
   const [metrics, setMetrics] = useState<MetricsBundle | null>(null)
   const [metricsLoading, setMetricsLoading] = useState(true)
@@ -63,6 +79,9 @@ export default function DashboardPage() {
 
   const [activity, setActivity] = useState<ActivityItem[] | null>(null)
   const [activityLoading, setActivityLoading] = useState(true)
+
+  const [needsReply, setNeedsReply] = useState<NeedsReplyItem[] | null>(null)
+  const [needsReplyError, setNeedsReplyError] = useState(false)
 
   const loadAll = useCallback(() => {
     const db = createClient()
@@ -97,6 +116,14 @@ export default function DashboardPage() {
       .then((a) => setActivity(a))
       .catch((err) => console.error('[dashboard] activity failed:', err))
       .finally(() => setActivityLoading(false))
+
+    void loadNeedsReply(db)
+      .then((n) => setNeedsReply(n))
+      .catch((err) => {
+        console.error('[dashboard] needs-reply failed:', err)
+        setNeedsReplyError(true)
+        setNeedsReply([])
+      })
   }, [])
 
   useEffect(() => {
@@ -121,111 +148,148 @@ export default function DashboardPage() {
     [series],
   )
 
+  const createActions = [
+    { key: 'newContact', href: '/contacts?new=1', icon: UserPlus },
+    { key: 'newDeal', href: '/pipelines?new=deal', icon: Briefcase },
+    { key: 'newBroadcast', href: '/broadcasts/new', icon: Radio },
+    { key: 'newAutomation', href: '/automations/new', icon: Zap },
+  ] as const
+
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('description')}
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title={t('title')}
+        description={t('description')}
+        actions={
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<Button />}
+            >
+              <Plus />
+              {t('create')}
+              <ChevronDown className="-mr-0.5 opacity-70" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              {createActions.map((a) => (
+                <DropdownMenuItem key={a.key} render={<Link href={a.href} />}>
+                  <a.icon />
+                  {tQuick(a.key)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        }
+      />
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {metricsLoading || !metrics ? (
-          Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-        ) : (
-          <>
-            <MetricCard
-              title={t('activeConversations')}
-              value={metrics.activeConversations.current.toLocaleString()}
-              icon={MessageSquare}
-              delta={{
-                sign: metrics.activeConversations.previous,
-                label: deltaLabel(
-                  metrics.activeConversations.previous, 
-                  t('newTodayVsYesterday'), 
-                  t('noChange', { suffix: t('newTodayVsYesterday') })
-                ),
-              }}
-            />
-            <MetricCard
-              title={t('newContactsToday')}
-              value={metrics.newContactsToday.current.toLocaleString()}
-              icon={UserPlus}
-              delta={{
-                sign:
-                  metrics.newContactsToday.current - metrics.newContactsToday.previous,
-                label: deltaLabel(
-                  metrics.newContactsToday.current - metrics.newContactsToday.previous,
-                  t('vsYesterday'),
-                  t('noChange', { suffix: t('vsYesterday') })
-                ),
-              }}
-            />
-            <MetricCard
-              title={t('openDealsValue')}
-              value={formatCurrency(metrics.openDealsValue, defaultCurrency)}
-              icon={DollarSign}
-              subtitle={t('openDeals', { count: metrics.openDealsCount })}
-            />
-            <MetricCard
-              title={t('messagesSentToday')}
-              value={metrics.messagesSentToday.current.toLocaleString()}
-              icon={Send}
-              delta={{
-                sign:
-                  metrics.messagesSentToday.current - metrics.messagesSentToday.previous,
-                label: deltaLabel(
-                  metrics.messagesSentToday.current - metrics.messagesSentToday.previous,
-                  t('vsYesterday'),
-                  t('noChange', { suffix: t('vsYesterday') })
-                ),
-              }}
-            />
-          </>
-        )}
-      </div>
+      <PageBody className="space-y-4">
+        {/* Key numbers */}
+        <StatStrip className="lg:grid-cols-4">
+          {metricsLoading || !metrics ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-card px-4 py-3">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="mt-2.5 h-6 w-16" />
+                <Skeleton className="mt-2 h-3 w-28" />
+              </div>
+            ))
+          ) : (
+            <>
+              <Stat
+                label={t('activeConversations')}
+                value={metrics.activeConversations.current.toLocaleString()}
+                hint={
+                  <Delta
+                    delta={metrics.activeConversations.previous}
+                    label={deltaLabel(
+                      metrics.activeConversations.previous,
+                      t('newTodayVsYesterday'),
+                      t('noChange', { suffix: t('newTodayVsYesterday') }),
+                    )}
+                  />
+                }
+              />
+              <Stat
+                label={t('newContactsToday')}
+                value={metrics.newContactsToday.current.toLocaleString()}
+                hint={
+                  <Delta
+                    delta={metrics.newContactsToday.current - metrics.newContactsToday.previous}
+                    label={deltaLabel(
+                      metrics.newContactsToday.current - metrics.newContactsToday.previous,
+                      t('vsYesterday'),
+                      t('noChange', { suffix: t('vsYesterday') }),
+                    )}
+                  />
+                }
+              />
+              <Stat
+                label={t('openDealsValue')}
+                value={formatCurrency(metrics.openDealsValue, defaultCurrency)}
+                hint={t('openDeals', { count: metrics.openDealsCount })}
+              />
+              <Stat
+                label={t('messagesSentToday')}
+                value={metrics.messagesSentToday.current.toLocaleString()}
+                hint={
+                  <Delta
+                    delta={metrics.messagesSentToday.current - metrics.messagesSentToday.previous}
+                    label={deltaLabel(
+                      metrics.messagesSentToday.current - metrics.messagesSentToday.previous,
+                      t('vsYesterday'),
+                      t('noChange', { suffix: t('vsYesterday') }),
+                    )}
+                  />
+                }
+              />
+            </>
+          )}
+        </StatStrip>
 
-      {/* Quick actions */}
-      <QuickActions />
-
-      {/* Charts row */}
-      {/* items-stretch (the grid default) stretches the two columns to
-          match the tallest sibling; adding h-full on each wrapper and
-          on the inner panels makes both cards actually fill that
-          stretched height so their rounded borders line up. Without
-          this, the pipeline card rendered at its natural (shorter)
-          height while the line chart drove the row height. */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        <div className="h-full lg:col-span-3">
-          <ConversationsChart
-            series={series}
-            loading={seriesLoading}
-            range={range}
-            onRangeChange={handleRangeChange}
-          />
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          <div className="min-w-0 xl:col-span-2">
+            <ConversationsChart
+              series={series}
+              loading={seriesLoading}
+              range={range}
+              onRangeChange={handleRangeChange}
+            />
+          </div>
+          <NeedsReply items={needsReply} error={needsReplyError} />
         </div>
-        <div className="h-full lg:col-span-2">
-          <PipelineDonut
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          <div className="min-w-0 xl:col-span-2">
+            <ResponseTimeChart data={responseTime} loading={responseTimeLoading} />
+          </div>
+          <PipelineBreakdown
             data={pipeline}
             loading={pipelineLoading}
             currency={defaultCurrency}
           />
         </div>
-      </div>
 
-      {/* Response time */}
-      <ResponseTimeChart data={responseTime} loading={responseTimeLoading} />
-
-      {/* Activity feed */}
-      <ActivityFeed items={activity} loading={activityLoading} />
-    </div>
+        <ActivityFeed items={activity} loading={activityLoading} />
+      </PageBody>
+    </Page>
   )
 }
 
 // ------------------------------------------------------------
+
+function Delta({ delta, label }: { delta: number; label: string }) {
+  const Icon = delta > 0 ? ArrowUpRight : delta < 0 ? ArrowDownRight : null
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-0.5',
+        delta > 0 ? 'text-success' : delta < 0 ? 'text-destructive' : 'text-muted-foreground',
+      )}
+    >
+      {Icon ? <Icon className="size-3.5" aria-hidden /> : null}
+      {label}
+    </span>
+  )
+}
 
 function deltaLabel(delta: number, suffix: string, noChangeLabel: string): string {
   if (delta === 0) return noChangeLabel
