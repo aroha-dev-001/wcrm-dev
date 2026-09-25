@@ -1,4 +1,7 @@
 {
+  "AuthShell": {
+    "tagline": "비즈니스에서 일어나는 일을 한눈에 파악하세요."
+  },
   "LoginPage": {
     "titleAccept": "로그인하여 수락하기",
     "titleWelcome": "다시 오신 것을 환영합니다",

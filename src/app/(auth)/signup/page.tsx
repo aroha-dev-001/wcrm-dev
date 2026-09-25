@@ -101,7 +101,7 @@ function SignupPageInner() {
             ),
           })}
         >
-          <div className="flex flex-col items-center gap-4 text-center">
+          <div className="flex flex-col items-start gap-5">
             <span className="flex size-10 items-center justify-center rounded-full border border-success/25 bg-success/10 text-success">
               <CheckCircle className="size-5" />
             </span>

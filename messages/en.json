@@ -1,4 +1,7 @@
 {
+  "AuthShell": {
+    "tagline": "Know what's happening in your business."
+  },
   "LoginPage": {
     "titleAccept": "Sign in to accept",
     "titleWelcome": "Welcome back",

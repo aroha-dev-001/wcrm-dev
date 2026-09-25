@@ -14,13 +14,15 @@ import { AuthCard, AuthError, AuthShell } from "@/components/auth/auth-shell";
 // `useSearchParams` opts the component out of static prerendering
 // unless it sits under a Suspense boundary. We split the form into
 // a child component so the outer page can prerender the chrome
-// (background, card frame) while the form hydrates with the query
+// (brand panel, layout) while the form hydrates with the query
 // string on the client.
 export default function LoginPage() {
   return (
-    <Suspense fallback={null}>
-      <LoginPageInner />
-    </Suspense>
+    <AuthShell>
+      <Suspense fallback={null}>
+        <LoginPageInner />
+      </Suspense>
+    </AuthShell>
   );
 }
 
@@ -69,72 +71,70 @@ function LoginPageInner() {
   };
 
   return (
-    <AuthShell>
-      <AuthCard
-        title={inviteToken ? t('titleAccept') : t('titleWelcome')}
-        description={inviteToken ? t('descAccept') : t('descWelcome')}
-        footer={
-          <>
-            {t('noAccount')}{" "}
+    <AuthCard
+      title={inviteToken ? t('titleAccept') : t('titleWelcome')}
+      description={inviteToken ? t('descAccept') : t('descWelcome')}
+      footer={
+        <>
+          {t('noAccount')}{" "}
+          <Link
+            href={
+              inviteToken
+                ? `/signup?invite=${encodeURIComponent(inviteToken)}`
+                : "/signup"
+            }
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            {t('createAccount')}
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleLogin} className="flex flex-col gap-4">
+        {error && <AuthError>{error}</AuthError>}
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="email">{t('emailLabel')}</Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            autoFocus
+            placeholder={t('emailPlaceholder')}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="h-9"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">{t('passwordLabel')}</Label>
             <Link
-              href={
-                inviteToken
-                  ? `/signup?invite=${encodeURIComponent(inviteToken)}`
-                  : "/signup"
-              }
-              className="font-medium text-foreground underline-offset-4 hover:underline"
+              href="/forgot-password"
+              className="text-xs text-muted-foreground hover:text-foreground"
             >
-              {t('createAccount')}
+              {t('forgotPassword')}
             </Link>
-          </>
-        }
-      >
-        <form onSubmit={handleLogin} className="flex flex-col gap-4">
-          {error && <AuthError>{error}</AuthError>}
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="email">{t('emailLabel')}</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              autoFocus
-              placeholder={t('emailPlaceholder')}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="h-9"
-            />
           </div>
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            placeholder={t('passwordPlaceholder')}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="h-9"
+          />
+        </div>
 
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">{t('passwordLabel')}</Label>
-              <Link
-                href="/forgot-password"
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                {t('forgotPassword')}
-              </Link>
-            </div>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              placeholder={t('passwordPlaceholder')}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="h-9"
-            />
-          </div>
-
-          <Button type="submit" size="lg" disabled={loading} className="mt-1 w-full">
-            {loading && <Loader2 className="animate-spin" />}
-            {loading ? t('signingIn') : t('signIn')}
-          </Button>
-        </form>
-      </AuthCard>
-    </AuthShell>
+        <Button type="submit" size="lg" disabled={loading} className="mt-1 w-full">
+          {loading && <Loader2 className="animate-spin" />}
+          {loading ? t('signingIn') : t('signIn')}
+        </Button>
+      </form>
+    </AuthCard>
   );
 }
