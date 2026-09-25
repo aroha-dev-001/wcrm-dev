@@ -1,0 +1,13 @@
+# Build command, publish dir and the Next.js plugin are configured in
+# the Netlify UI; this file only adds what the UI settings can't carry
+# in the repo.
+
+[build.environment]
+  # Next 16.3+ writes a Turbopack build cache to .next/cache/turbopack,
+  # and that cache records the values of env vars the server code reads
+  # (e.g. META_APP_SECRET in the webhook signature check). The Netlify
+  # Next.js plugin keeps the cache under .netlify/.next/cache between
+  # builds — it is never published — but secrets scanning still reads
+  # it and fails the build. Skip only that directory so the scan keeps
+  # covering the real build output.
+  SECRETS_SCAN_OMIT_PATHS = ".netlify/.next/cache/**"
