@@ -11,6 +11,7 @@ import {
   X,
   Pencil,
   RotateCcw,
+  Send,
   Upload,
   FileText,
 } from 'lucide-react';
@@ -147,6 +148,11 @@ export function TemplateManager() {
   // submit handler from POST /submit to PATCH /[id] and changes the
   // dialog title + CTA. Set to the template id to pre-fill from a row.
   const [editingId, setEditingId] = useState<string | null>(null);
+  // Non-null when the dialog is submitting a DRAFT row (never sent to
+  // Meta, or a submit that failed). It goes through POST /submit like
+  // a new template; this id lets us clean up the old row if the user
+  // renamed it before submitting.
+  const [draftId, setDraftId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   // Template selected for the confirm-delete dialog. The destructive
   // action goes through this two-step so a slip on the trash icon
@@ -242,9 +248,8 @@ export function TemplateManager() {
     };
   }
 
-  function openEdit(template: MessageTemplate) {
-    setEditingId(template.id);
-    setForm({
+  function formFromTemplate(template: MessageTemplate): TemplateFormData {
+    return {
       name: template.name,
       category: template.category,
       language: template.language || 'en_US',
@@ -256,12 +261,26 @@ export function TemplateManager() {
       body_samples: template.sample_values?.body ?? [],
       footer_text: template.footer_text ?? '',
       buttons: template.buttons ?? [],
-    });
+    };
+  }
+
+  function openEdit(template: MessageTemplate) {
+    setEditingId(template.id);
+    setDraftId(null);
+    setForm(formFromTemplate(template));
+    setDialogOpen(true);
+  }
+
+  function openSubmitDraft(template: MessageTemplate) {
+    setEditingId(null);
+    setDraftId(template.id);
+    setForm(formFromTemplate(template));
     setDialogOpen(true);
   }
 
   function openCreate() {
     setEditingId(null);
+    setDraftId(null);
     setForm(emptyForm);
     setDialogOpen(true);
   }
@@ -287,6 +306,12 @@ export function TemplateManager() {
           data?.error || t(isEdit ? 'editFailedHttp' : 'submitFailedHttp', { status: res.status }),
         );
       }
+      // The submit upserts on (user_id, name, language), so a draft
+      // that was renamed lands in a new row. Drop the old local-only
+      // draft so it doesn't linger next to the submitted one.
+      if (draftId && data.template?.id && data.template.id !== draftId) {
+        await fetch(`/api/whatsapp/templates/${draftId}`, { method: 'DELETE' });
+      }
       // Refresh first, then close — re-opening the dialog
       // immediately should not show a stale list.
       if (user) await fetchTemplates(user.id);
@@ -302,6 +327,7 @@ export function TemplateManager() {
       setDialogOpen(false);
       setForm(emptyForm);
       setEditingId(null);
+      setDraftId(null);
     } catch (err) {
       console.error('Submit error:', err);
       toast.error(err instanceof Error ? err.message : t('toastSubmitFailed'));
@@ -606,6 +632,18 @@ export function TemplateManager() {
                     )}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
+                    {statusKey === 'DRAFT' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openSubmitDraft(template)}
+                        title={t('submitDraftTitle')}
+                        aria-label={t('submitDraftLabel')}
+                      >
+                        <Send className="size-3.5" />
+                        {t('submitDraft')}
+                      </Button>
+                    )}
                     {statusKey === 'APPROVED' && (
                       <Button
                         variant="ghost"
@@ -666,6 +704,7 @@ export function TemplateManager() {
           setDialogOpen(open);
           if (!open) {
             setEditingId(null);
+            setDraftId(null);
             setForm(emptyForm);
           }
         }}
