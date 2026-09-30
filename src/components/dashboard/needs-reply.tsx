@@ -14,8 +14,9 @@ import { Panel, PanelFooter, PanelHeader } from '@/components/ui/panel'
 
 import { initialOf } from '@/lib/utils'
 /**
- * Open conversations with unread customer messages — the shortest path
- * from the dashboard to work that's waiting.
+ * Conversations with unread customer messages, including ones a flow or
+ * the AI bot handed off — the shortest path from the dashboard to work
+ * that's waiting.
  */
 export function NeedsReply({
   items,
@@ -72,6 +73,11 @@ export function NeedsReply({
                         <span className="truncate text-[13px] font-medium text-foreground">
                           {name}
                         </span>
+                        {c.status === 'pending' ? (
+                          <span className="shrink-0 rounded-full border border-warning/30 bg-warning/10 px-1.5 text-[10px] font-medium text-warning">
+                            {t('handedOff')}
+                          </span>
+                        ) : null}
                         {c.lastMessageAt ? (
                           <span className="ml-auto shrink-0 text-[11px] text-muted-foreground tabular-nums">
                             {formatDistanceToNowStrict(new Date(c.lastMessageAt))}

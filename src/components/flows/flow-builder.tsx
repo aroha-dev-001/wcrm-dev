@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -286,12 +287,20 @@ function TriggerPanel({
                 ...s,
                 trigger_type: v as BuilderState['trigger_type'],
                 trigger_config:
-                  v === 'keyword' ? { keywords: [] } : v === 'manual' ? {} : {},
+                  v === 'keyword' ? { keywords: [], match_type: 'word' } : {},
               }))
             }
           >
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue>
+                {(v: string) =>
+                  v === 'keyword'
+                    ? t('triggerKeywordTitle')
+                    : v === 'first_inbound_message'
+                      ? t('triggerFirstInboundTitle')
+                      : t('triggerManualTitle')
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="keyword">
@@ -325,6 +334,53 @@ function TriggerPanel({
               }
               t={t}
             />
+            <label className="text-muted-foreground mt-3 mb-1 block text-xs">
+              {t('matchLabel')}
+            </label>
+            <Select
+              value={(state.trigger_config.match_type as string | undefined) ?? 'contains'}
+              onValueChange={(v) =>
+                setState((s) => ({
+                  ...s,
+                  trigger_config: { ...s.trigger_config, match_type: v },
+                }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue>
+                  {(v: string) =>
+                    v === 'word'
+                      ? t('matchWord')
+                      : v === 'exact'
+                        ? t('matchExact')
+                        : t('matchContains')
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="word">{t('matchWord')}</SelectItem>
+                <SelectItem value="contains">{t('matchContains')}</SelectItem>
+                <SelectItem value="exact">{t('matchExact')}</SelectItem>
+              </SelectContent>
+            </Select>
+            <label className="mt-3 flex cursor-pointer items-start gap-2">
+              <Checkbox
+                checked={state.trigger_config.also_on_first_message === true}
+                onCheckedChange={(checked) =>
+                  setState((s) => ({
+                    ...s,
+                    trigger_config: {
+                      ...s.trigger_config,
+                      also_on_first_message: checked === true,
+                    },
+                  }))
+                }
+                className="mt-0.5"
+              />
+              <span className="text-muted-foreground text-xs">
+                {t('alsoOnFirstMessage')}
+              </span>
+            </label>
           </div>
         )}
       </div>

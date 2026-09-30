@@ -317,3 +317,129 @@ describe("dispatchInboundToFlows — entry triggers (#490)", () => {
     expect(startedRuns()).toHaveLength(1);
   });
 });
+
+describe("dispatchInboundToFlows — first-message fallback", () => {
+  const WELCOME = {
+    ...KEYWORD_FLOW,
+    id: "flow-welcome",
+    trigger_config: { keywords: ["hi"], match_type: "word", also_on_first_message: true },
+    created_at: "2026-01-01T00:00:00Z",
+  };
+  const DEALER = {
+    ...KEYWORD_FLOW,
+    id: "flow-dealer",
+    trigger_config: { keywords: ["dealership"], match_type: "word" },
+    created_at: "2026-01-02T00:00:00Z",
+  };
+
+  function first(text: string, isFirstInboundMessage = true) {
+    return dispatchInboundToFlows({
+      accountId: "acct-1",
+      userId: "u-1",
+      contactId: "ct-1",
+      conversationId: "cv-1",
+      message: { kind: "text", text, meta_message_id: "m1" },
+      isFirstInboundMessage,
+    });
+  }
+
+  it("starts the flagged flow for a new customer's non-keyword first message", async () => {
+    h.state.flows = [WELCOME, DEALER];
+    const result = await first("Good morning");
+    expect(result.consumed).toBe(true);
+    expect(startedRuns()[0].row.flow_id).toBe("flow-welcome");
+  });
+
+  it("lets a later flow's keyword win over the fallback", async () => {
+    h.state.flows = [WELCOME, DEALER];
+    await first("I want a dealership");
+    expect(startedRuns()[0].row.flow_id).toBe("flow-dealer");
+  });
+
+  it("does nothing for a returning customer's non-keyword message", async () => {
+    h.state.flows = [WELCOME, DEALER];
+    const result = await first("Good morning", false);
+    expect(result.consumed).toBe(false);
+    expect(startedRuns()).toEqual([]);
+  });
+});
+
+describe("dispatchInboundToFlows — typed keyword restarts a waiting run", () => {
+  const MENU_NODES = [
+    ...NODES,
+    {
+      id: "n4",
+      flow_id: "flow-1",
+      node_key: "menu",
+      node_type: "send_buttons",
+      config: {
+        text: "Pick one",
+        buttons: [{ reply_id: "a", title: "A", next_node_key: "done" }],
+      },
+    },
+    {
+      id: "n5",
+      flow_id: "flow-1",
+      node_key: "ask",
+      node_type: "collect_input",
+      config: { prompt_text: "Name?", var_key: "name", next_node_key: "done" },
+    },
+  ];
+  const activeRunAt = (node: string) => ({
+    id: "run-0",
+    flow_id: "flow-1",
+    account_id: "acct-1",
+    user_id: "u-1",
+    contact_id: "ct-1",
+    conversation_id: "cv-1",
+    status: "active",
+    current_node_key: node,
+    vars: {},
+    reprompt_count: 0,
+  });
+
+  beforeEach(() => {
+    h.state.nodes = MENU_NODES;
+    h.state.flows = [
+      { ...KEYWORD_FLOW, trigger_config: { keywords: ["hi"], match_type: "word" } },
+    ];
+  });
+
+  it("ends the run at a button prompt and starts the matching flow", async () => {
+    h.state.activeRuns = [activeRunAt("menu")];
+
+    const result = await dispatch({ kind: "text", text: "Hi!", meta_message_id: "m2" });
+
+    expect(result.consumed).toBe(true);
+    expect(result.flow_run_id).toBe("run-1");
+    expect(startedRuns()).toHaveLength(1);
+    expect(
+      h.state.inserted.some(
+        (i) =>
+          i.table === "flow_run_events" &&
+          i.row.flow_run_id === "run-0" &&
+          (i.row.payload as { reason?: string }).reason === "restarted_by_keyword",
+      ),
+    ).toBe(true);
+    // The new run actually ran its greeting.
+    expect(engineSendText).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats typed text at a question as the answer, not a restart", async () => {
+    h.state.activeRuns = [activeRunAt("ask")];
+
+    const result = await dispatch({ kind: "text", text: "hi", meta_message_id: "m2" });
+
+    expect(result.consumed).toBe(true);
+    expect(startedRuns()).toEqual([]);
+  });
+
+  it("re-prompts when the typed text matches no keyword", async () => {
+    h.state.activeRuns = [activeRunAt("menu")];
+
+    const result = await dispatch({ kind: "text", text: "which one?", meta_message_id: "m2" });
+
+    expect(result.outcome).toBe("fallback_fired");
+    expect(startedRuns()).toEqual([]);
+  });
+});

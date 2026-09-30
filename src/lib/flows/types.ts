@@ -205,8 +205,20 @@ export type FlowNodeType = FlowNodeConfig["node_type"];
 export interface KeywordTriggerConfig {
   /** One or more keywords. Match is case-insensitive by default. */
   keywords: string[];
-  match_type?: "exact" | "contains";
+  /**
+   * `contains` (default) is a substring test, `exact` compares the
+   * whole message, `word` matches the keyword as a whole word — the
+   * right choice for short greetings like "hi".
+   */
+  match_type?: "exact" | "contains" | "word";
   case_sensitive?: boolean;
+  /**
+   * Also start this flow for a contact's first-ever inbound message,
+   * whatever it says — so one welcome flow covers both "hi" and a new
+   * customer opening with "good morning". Keyword flows are checked in
+   * creation order, so an older flow whose keyword matches still wins.
+   */
+  also_on_first_message?: boolean;
 }
 
 // No knobs in v1 — the trigger has a single semantic. Kept as a type

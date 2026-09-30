@@ -66,9 +66,11 @@ export interface ActivityItem {
   href?: string
 }
 
-/** An open conversation with unread customer messages. */
+/** A conversation waiting on the team: open with unread customer
+ *  messages, or handed off by a flow / the AI bot (`pending`). */
 export interface NeedsReplyItem {
   id: string
+  status: 'open' | 'pending'
   unreadCount: number
   lastMessageText: string | null
   lastMessageAt: string | null
@@ -80,4 +82,33 @@ export interface NeedsReplyItem {
     avatar_url?: string | null
     company?: string | null
   } | null
+}
+
+/** A tag and how many contacts received it in the window. */
+export interface InterestTagCount {
+  id: string
+  name: string
+  color: string
+  count: number
+}
+
+/** A contact who picked up tags recently, with those tags newest-first. */
+export interface InterestLead {
+  contactId: string
+  /** Thread to open from the dashboard; null if the contact has none. */
+  conversationId: string | null
+  lastAt: string
+  contact: {
+    name: string | null
+    phone: string | null
+    wa_username?: string | null
+    wa_user_id?: string | null
+    avatar_url?: string | null
+  } | null
+  tags: { id: string; name: string; color: string }[]
+}
+
+export interface CustomerInterest {
+  topTags: InterestTagCount[]
+  leads: InterestLead[]
 }

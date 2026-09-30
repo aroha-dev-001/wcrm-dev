@@ -47,6 +47,7 @@ import { Page, PageBody, PageHeader, SectionHeading } from "@/components/layout/
 import { Badge } from "@/components/ui/badge"
 import { EmptyState, ErrorState } from "@/components/ui/empty-state"
 import { SkeletonRows } from "@/components/ui/skeleton"
+import { StarterKits } from "@/components/kits/starter-kits"
 
 const TEMPLATE_ORDER: TemplateSlug[] = [
   "welcome_message",
@@ -202,6 +203,7 @@ export default function AutomationsPage() {
     <Page>
       {header}
       <PageBody className="space-y-6">
+        <StarterKits onInstalled={() => void load()} />
         {showTemplates && (
           <section>
             <SectionHeading title={t("templatesTitle")} />

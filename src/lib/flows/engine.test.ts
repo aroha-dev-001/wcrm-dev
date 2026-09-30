@@ -19,6 +19,8 @@ const h = vi.hoisted(() => ({
     events: [] as Record<string, unknown>[],
     /** Every UPDATE, by table. */
     updates: [] as { table: string; row: Record<string, unknown> }[],
+    /** contact_notes INSERTs (handoff notes). */
+    notes: [] as Record<string, unknown>[],
   },
   sendButtons: vi.fn<
     (
@@ -55,6 +57,7 @@ vi.mock("./admin-client", () => {
       },
       insert: (row: Record<string, unknown>) => {
         if (table === "flow_run_events") h.state.events.push(row);
+        if (table === "contact_notes") h.state.notes.push(row);
         return b;
       },
       maybeSingle: async () => ({ data: rows(table)[0] ?? null, error: null }),
@@ -232,6 +235,16 @@ describe("matchesKeywordTrigger", () => {
     const cfg = { keywords: ["", "support", ""] };
     expect(matchesKeywordTrigger("support center", cfg)).toBe(true);
     expect(matchesKeywordTrigger("nope", cfg)).toBe(false);
+  });
+
+  it("match_type='word' matches a greeting as a whole word only", () => {
+    const cfg = { keywords: ["hi"], match_type: "word" as const };
+    expect(matchesKeywordTrigger("Hi!", cfg)).toBe(true);
+    expect(matchesKeywordTrigger("hi there", cfg)).toBe(true);
+    expect(matchesKeywordTrigger("Hello, hi", cfg)).toBe(true);
+    // The substring hits that make `contains` useless for "hi".
+    expect(matchesKeywordTrigger("which one?", cfg)).toBe(false);
+    expect(matchesKeywordTrigger("this is it", cfg)).toBe(false);
   });
 });
 
@@ -623,5 +636,68 @@ describe("send_buttons / send_list interpolate {{vars.*}} (#553)", () => {
         }),
       }),
     );
+  });
+});
+
+describe("handoff notes", () => {
+  beforeEach(() => {
+    h.state.activeRuns = [{ ...RUN, vars: {} }];
+    h.state.flows = [FLOW];
+    h.state.events = [];
+    h.state.updates = [];
+    h.state.notes = [];
+    h.state.nodes = [
+      {
+        id: "n1",
+        flow_id: "flow-1",
+        node_key: "ask_name",
+        node_type: "collect_input",
+        config: { prompt_text: "What's your name?", var_key: "name", next_node_key: "handoff" },
+      },
+      {
+        id: "n2",
+        flow_id: "flow-1",
+        node_key: "handoff",
+        node_type: "handoff",
+        config: { note: "Quote request from {{vars.name}}" },
+      },
+    ];
+  });
+
+  it("fills in captured answers and pins the note to the contact", async () => {
+    const result = await dispatch(text("Alice"));
+
+    expect(result).toMatchObject({ consumed: true, outcome: "handed_off" });
+    expect(h.state.notes).toEqual([
+      {
+        account_id: "acct-1",
+        user_id: "u-1",
+        contact_id: "ct-1",
+        note_text: "Quote request from Alice",
+      },
+    ]);
+    expect(h.state.events).toContainEqual(
+      expect.objectContaining({
+        event_type: "handoff",
+        payload: expect.objectContaining({ note: "Quote request from Alice" }),
+      }),
+    );
+    expect(h.state.updates).toContainEqual(
+      expect.objectContaining({
+        table: "conversations",
+        row: expect.objectContaining({ status: "pending" }),
+      }),
+    );
+  });
+
+  it("writes no contact note when the handoff has none", async () => {
+    h.state.nodes = [
+      h.state.nodes[0],
+      { id: "n2", flow_id: "flow-1", node_key: "handoff", node_type: "handoff", config: {} },
+    ];
+
+    await dispatch(text("Alice"));
+
+    expect(h.state.notes).toEqual([]);
   });
 });

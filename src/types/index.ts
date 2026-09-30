@@ -510,8 +510,8 @@ export interface KeywordMatchTriggerConfig {
    * matches inside longer words — "k" fires on "thanks". `word` is the
    * boundary-aware alternative added for issue #409; see
    * `matchesWholeWord` in `@/lib/automations/engine` for its exact
-   * semantics. Flows carry their own keyword config and stay
-   * substring-only (`@/lib/flows/types`).
+   * semantics. Flows carry their own keyword config
+   * (`@/lib/flows/types`) and share the same `word` matcher.
    */
   match_type: 'exact' | 'contains' | 'word';
   case_sensitive?: boolean;

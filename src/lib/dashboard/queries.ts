@@ -10,6 +10,9 @@ import {
 import type {
   ActivityItem,
   ConversationsSeriesPoint,
+  CustomerInterest,
+  InterestLead,
+  InterestTagCount,
   MetricsBundle,
   NeedsReplyItem,
   PipelineDonutData,
@@ -399,22 +402,25 @@ export async function loadActivity(db: DB, limit = 20): Promise<ActivityItem[]> 
 }
 
 // --- 6. Needs a reply ---------------------------------------------------
-// Open conversations holding unread customer messages, newest first —
-// the dashboard's "what should I do next" list.
+// Conversations holding unread customer messages, newest first — the
+// dashboard's "what should I do next" list. `pending` is included: it's
+// the status a flow or the AI bot sets when it hands a customer to a
+// human, i.e. exactly the threads that are waiting on the team.
 
 export async function loadNeedsReply(db: DB, limit = 6): Promise<NeedsReplyItem[]> {
   const { data, error } = await db
     .from('conversations')
     .select(
-      'id, unread_count, last_message_text, last_message_at, contact:contacts(name, phone, wa_username, wa_user_id, avatar_url, company)',
+      'id, status, unread_count, last_message_text, last_message_at, contact:contacts(name, phone, wa_username, wa_user_id, avatar_url, company)',
     )
-    .eq('status', 'open')
+    .in('status', ['open', 'pending'])
     .gt('unread_count', 0)
     .order('last_message_at', { ascending: false })
     .limit(limit)
   if (error) throw error
   type Row = {
     id: string
+    status: NeedsReplyItem['status']
     unread_count: number | null
     last_message_text: string | null
     last_message_at: string | null
@@ -422,10 +428,84 @@ export async function loadNeedsReply(db: DB, limit = 6): Promise<NeedsReplyItem[
   }
   return ((data ?? []) as unknown as Row[]).map((r) => ({
     id: r.id,
+    status: r.status,
     unreadCount: r.unread_count ?? 0,
     lastMessageText: r.last_message_text,
     lastMessageAt: r.last_message_at,
     // PostgREST returns a to-one embed as an object; normalise defensively.
     contact: Array.isArray(r.contact) ? (r.contact[0] ?? null) : r.contact,
   }))
+}
+
+// --- 7. Customer interest ------------------------------------------------
+// What customers asked about, read off the tags flows and automations
+// put on them (e.g. "Interested: Bio Astra", "Wants quote"): the most
+// common tags in the window, and the latest contacts with their tags.
+
+export async function loadCustomerInterest(
+  db: DB,
+  rangeDays = 30,
+  leadLimit = 6,
+): Promise<CustomerInterest> {
+  const start = daysAgoStart(rangeDays - 1).toISOString()
+  const { data, error } = await db
+    .from('contact_tags')
+    .select(
+      'contact_id, created_at, tag:tags(id, name, color), contact:contacts(name, phone, wa_username, wa_user_id, avatar_url)',
+    )
+    .gte('created_at', start)
+    .order('created_at', { ascending: false })
+    .limit(500)
+  if (error) throw error
+
+  type Tag = { id: string; name: string; color: string }
+  type Row = {
+    contact_id: string
+    created_at: string
+    tag: Tag | Tag[] | null
+    contact: InterestLead['contact'] | InterestLead['contact'][]
+  }
+  const one = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v)
+
+  const counts = new Map<string, InterestTagCount>()
+  const leads = new Map<string, InterestLead>()
+  for (const r of (data ?? []) as unknown as Row[]) {
+    const tag = one(r.tag)
+    if (!tag) continue
+    const c = counts.get(tag.id) ?? { ...tag, color: tag.color || '#64748b', count: 0 }
+    c.count += 1
+    counts.set(tag.id, c)
+
+    // Rows arrive newest-first, so the first row per contact sets both
+    // the lead's position and its lastAt.
+    let lead = leads.get(r.contact_id)
+    if (!lead) {
+      if (leads.size >= leadLimit) continue
+      lead = {
+        contactId: r.contact_id,
+        conversationId: null,
+        lastAt: r.created_at,
+        contact: one(r.contact),
+        tags: [],
+      }
+      leads.set(r.contact_id, lead)
+    }
+    lead.tags.push({ id: tag.id, name: tag.name, color: tag.color || '#64748b' })
+  }
+
+  if (leads.size > 0) {
+    const { data: convs } = await db
+      .from('conversations')
+      .select('id, contact_id')
+      .in('contact_id', [...leads.keys()])
+    for (const conv of (convs ?? []) as { id: string; contact_id: string }[]) {
+      const lead = leads.get(conv.contact_id)
+      if (lead && !lead.conversationId) lead.conversationId = conv.id
+    }
+  }
+
+  return {
+    topTags: [...counts.values()].sort((a, b) => b.count - a.count).slice(0, 8),
+    leads: [...leads.values()],
+  }
 }

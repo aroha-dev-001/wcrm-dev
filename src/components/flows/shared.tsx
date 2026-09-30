@@ -403,9 +403,13 @@ export function summarizeNode(
     case 'set_tag': {
       const mode = cfg.mode === 'remove' ? (t ? t('modeRemove') : 'Remove') : (t ? t('modeAdd') : 'Add');
       const tagId = typeof cfg.tag_id === 'string' ? cfg.tag_id : '';
-      // No tag name available without an async lookup here; show a
-      // short prefix of the UUID so users can disambiguate between
-      // multiple set_tag nodes at a glance.
+      // The picker (and the starter-kit installer) store the tag's name
+      // as `tag_label` beside the id. Older nodes have only the id, so
+      // fall back to a short prefix of the UUID to tell nodes apart.
+      const tagLabel = typeof cfg.tag_label === 'string' ? cfg.tag_label : '';
+      if (tagId && tagLabel) {
+        return t ? t('tagNamed', { mode, tag: truncate(tagLabel, 32) }) : `${mode} tag "${tagLabel}"`;
+      }
       return tagId
         ? t ? t('tagPicked', { mode, tag: tagId.slice(0, 8) }) : `${mode} tag ${tagId.slice(0, 8)}…`
         : t ? t('tagNone', { mode }) : `${mode} tag (none picked)`;

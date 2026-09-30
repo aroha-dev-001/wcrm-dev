@@ -42,6 +42,7 @@ import {
 import { decideFallback, resolveFallbackPolicy } from "./fallback";
 import { addContactTagAndDispatch } from "@/lib/contacts/tag-events";
 import { removeContactTag } from "@/lib/contacts/tag-write";
+import { matchesWholeWord } from "@/lib/automations/engine";
 import {
   type CollectInputNodeConfig,
   type ConditionNodeConfig,
@@ -90,9 +91,14 @@ export function matchReplyId(
 }
 
 /**
- * Case-insensitive contains/exact match against a list of keywords.
+ * Case-insensitive contains/exact/word match against a list of keywords.
  * Used by the trigger evaluator. Stable enough that the v3 builder
  * UI can preview matches by passing canned strings.
+ *
+ * `word` shares the automations engine's whole-word test so a short
+ * greeting like "hi" fires on "Hi!" and "hi there" but not "which" or
+ * "this" — the failure mode that makes `contains` unusable for
+ * greeting keywords.
  */
 export function matchesKeywordTrigger(
   text: string,
@@ -103,6 +109,10 @@ export function matchesKeywordTrigger(
   const haystack = cfg.case_sensitive ? text : text.toLowerCase();
   for (const raw of cfg.keywords) {
     if (!raw) continue;
+    if (matchType === "word") {
+      if (matchesWholeWord(text, raw, cfg.case_sensitive)) return true;
+      continue;
+    }
     const needle = cfg.case_sensitive ? raw : raw.toLowerCase();
     if (matchType === "exact" ? haystack === needle : haystack.includes(needle)) {
       return true;
@@ -360,11 +370,18 @@ async function findEntryFlow(
   if (error || !flows) return null;
 
   const typed = flows as FlowRow[];
+  // A keyword flow flagged `also_on_first_message` is a fallback: it
+  // starts for a first message only when no flow matched outright, so
+  // "I want a dealership" still reaches the dealer flow.
+  let firstMessageFallback: FlowRow | null = null;
   for (const flow of typed) {
     if (flow.trigger_type === "keyword") {
       const cfg = flow.trigger_config as KeywordTriggerConfig;
       if (candidates.some((text) => matchesKeywordTrigger(text, cfg))) {
         return flow;
+      }
+      if (isFirstInbound && cfg.also_on_first_message) {
+        firstMessageFallback ??= flow;
       }
     } else if (flow.trigger_type === "first_inbound_message" && isFirstInbound) {
       // Also reachable by a tap now: a broadcast template with a
@@ -377,7 +394,28 @@ async function findEntryFlow(
     }
     // 'manual' triggers do not auto-start from inbound messages.
   }
-  return null;
+  return firstMessageFallback;
+}
+
+/**
+ * The keyword flow a typed message should restart into, or null.
+ * Applies only while the active run waits on a button/list tap — see
+ * the call site in `dispatchInboundToFlows`.
+ */
+async function findKeywordRestartFlow(
+  db: AdminClient,
+  input: DispatchInboundInput,
+  run: FlowRunRow,
+  nodes: Map<string, FlowNodeRow>,
+): Promise<FlowRow | null> {
+  if (input.message.kind !== "text") return null;
+  const current = run.current_node_key ? nodes.get(run.current_node_key) : undefined;
+  if (current?.node_type !== "send_buttons" && current?.node_type !== "send_list") {
+    return null;
+  }
+  // isFirstInbound=false → only keyword flows can match.
+  const flow = await findEntryFlow(db, input.accountId, input.message, false);
+  return flow?.entry_node_id ? flow : null;
 }
 
 // ============================================================
@@ -482,6 +520,9 @@ async function executeHandoff(
   node: FlowNodeRow,
 ): Promise<void> {
   const cfg = node.config as { assign_to?: string; note?: string };
+  // Notes routinely carry what the flow collected ("New lead —
+  // name={{vars.name}}"), so render them against the run's vars.
+  const note = cfg.note ? interpolateVars(cfg.note, run.vars).trim() : "";
   const convUpdate: Record<string, unknown> = {
     status: "pending",
     updated_at: new Date().toISOString(),
@@ -493,8 +534,22 @@ async function executeHandoff(
       .update(convUpdate)
       .eq("id", run.conversation_id);
   }
+  // Also pin the note to the contact so the agent picking up sees it
+  // in the inbox sidebar — the run log alone is two clicks away from
+  // the conversation. Non-fatal: the handoff itself already happened.
+  if (note && run.contact_id) {
+    const { error: noteErr } = await db.from("contact_notes").insert({
+      account_id: run.account_id,
+      user_id: run.user_id,
+      contact_id: run.contact_id,
+      note_text: note,
+    });
+    if (noteErr) {
+      console.error("[flows] handoff note insert error:", noteErr.message);
+    }
+  }
   await logEvent(db, run.id, "handoff", node.node_key, {
-    note: cfg.note ?? null,
+    note: note || null,
     assigned_to: cfg.assign_to ?? null,
   });
   await endRun(db, run.id, "handed_off", "handoff_node");
@@ -949,6 +1004,24 @@ export async function dispatchInboundToFlows(
       // One SELECT for the whole flow's nodes — advance loop is now
       // in-memory. See loadAllNodes.
       const nodes = await loadAllNodes(db, activeRun.flow_id);
+
+      // A customer parked at a button/list prompt who *types* a trigger
+      // keyword ("hi", "menu") wants that flow, not the stale prompt
+      // re-sent at them. Only for button/list prompts: at a
+      // collect_input node typed text is the expected answer.
+      const restart = await findKeywordRestartFlow(db, input, activeRun, nodes);
+      if (restart) {
+        await logEvent(db, activeRun.id, "completed", activeRun.current_node_key, {
+          reason: "restarted_by_keyword",
+          next_flow_id: restart.id,
+          meta_message_id: input.message.meta_message_id,
+        });
+        await endRun(db, activeRun.id, "completed", "restarted_by_keyword");
+        const restartNodes =
+          restart.id === activeRun.flow_id ? nodes : await loadAllNodes(db, restart.id);
+        return startNewRun(db, restart, input, restartNodes);
+      }
+
       return handleReplyForActiveRun(db, activeRun, input.message, nodes);
     }
 

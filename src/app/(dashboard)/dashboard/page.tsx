@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils'
 import {
   loadActivity,
   loadConversationsSeries,
+  loadCustomerInterest,
   loadMetrics,
   loadNeedsReply,
   loadPipelineDonut,
@@ -29,6 +30,7 @@ import {
 import type {
   ActivityItem,
   ConversationsSeriesPoint,
+  CustomerInterest as CustomerInterestData,
   MetricsBundle,
   NeedsReplyItem,
   PipelineDonutData,
@@ -50,6 +52,7 @@ import { PipelineBreakdown } from '@/components/dashboard/pipeline-breakdown'
 import { ResponseTimeChart } from '@/components/dashboard/response-time-chart'
 import { ActivityFeed } from '@/components/dashboard/activity-feed'
 import { NeedsReply } from '@/components/dashboard/needs-reply'
+import { CustomerInterest } from '@/components/dashboard/customer-interest'
 
 type RangeDays = 7 | 30 | 90
 
@@ -82,6 +85,9 @@ export default function DashboardPage() {
 
   const [needsReply, setNeedsReply] = useState<NeedsReplyItem[] | null>(null)
   const [needsReplyError, setNeedsReplyError] = useState(false)
+
+  const [interest, setInterest] = useState<CustomerInterestData | null>(null)
+  const [interestError, setInterestError] = useState(false)
 
   const loadAll = useCallback(() => {
     const db = createClient()
@@ -123,6 +129,14 @@ export default function DashboardPage() {
         console.error('[dashboard] needs-reply failed:', err)
         setNeedsReplyError(true)
         setNeedsReply([])
+      })
+
+    void loadCustomerInterest(db)
+      .then((i) => setInterest(i))
+      .catch((err) => {
+        console.error('[dashboard] customer interest failed:', err)
+        setInterestError(true)
+        setInterest({ topTags: [], leads: [] })
       })
   }, [])
 
@@ -247,14 +261,18 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <div className="min-w-0 xl:col-span-2">
-            <ConversationsChart
-              series={series}
-              loading={seriesLoading}
-              range={range}
-              onRangeChange={handleRangeChange}
-            />
+            <CustomerInterest data={interest} error={interestError} />
           </div>
           <NeedsReply items={needsReply} error={needsReplyError} />
+        </div>
+
+        <div className="min-w-0">
+          <ConversationsChart
+            series={series}
+            loading={seriesLoading}
+            range={range}
+            onRangeChange={handleRangeChange}
+          />
         </div>
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">

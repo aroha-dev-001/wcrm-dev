@@ -33,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Page, PageBody, PageHeader } from "@/components/layout/page";
 import { EmptyState } from "@/components/ui/empty-state";
+import { StarterKits } from "@/components/kits/starter-kits";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
@@ -122,6 +123,9 @@ function FlowsPageInner() {
     router.replace("/flows", { scroll: false });
   }, [wantsNew, canCreate, router]);
 
+  // Bumped after a starter kit installs so the list picks up its flows.
+  const [reloadKey, setReloadKey] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -155,7 +159,7 @@ function FlowsPageInner() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
 
   async function handleCreate() {
     if (!newName.trim()) return;
@@ -167,7 +171,7 @@ function FlowsPageInner() {
         body: JSON.stringify({
           name: newName.trim(),
           trigger_type: "keyword",
-          trigger_config: { keywords: [] },
+          trigger_config: { keywords: [], match_type: "word" },
         }),
       });
       if (!res.ok) throw new Error(`Create failed: ${res.status}`);
@@ -240,7 +244,8 @@ function FlowsPageInner() {
         }
       />
 
-      <PageBody>
+      <PageBody className="space-y-4">
+        <StarterKits onInstalled={() => setReloadKey((k) => k + 1)} />
         {loading ? (
           <div className="overflow-hidden rounded-lg border border-border bg-card">
             <SkeletonRows rows={5} />

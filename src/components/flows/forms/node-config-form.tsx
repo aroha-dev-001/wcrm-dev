@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { uploadAccountMedia, MEDIA_MAX_BYTES } from "@/lib/storage/upload-media";
+import { createClient } from "@/lib/supabase/client";
 import { slugify, type BuilderNode } from "../shared";
 import { NextNodeRow, NodeKeySelect, TextRow } from "./fields";
 
@@ -633,7 +634,15 @@ function ConditionForm({
             }
           >
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue>
+                {(v: string) =>
+                  v === "tag"
+                    ? t("contactHasTag")
+                    : v === "contact_field"
+                      ? t("contactField")
+                      : t("capturedVariable")
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="var">{t("capturedVariable")}</SelectItem>
@@ -656,7 +665,11 @@ function ConditionForm({
               onValueChange={(v) => onUpdateConfig({ subject_key: v })}
             >
               <SelectTrigger>
-                <SelectValue placeholder={t("pickTag")} />
+                <SelectValue>
+                  {(v: string) => tagLabel(tags, v) ?? (
+                    <span className="text-subtle-foreground">{t("pickTag")}</span>
+                  )}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {tags.map((t) => (
@@ -709,7 +722,17 @@ function ConditionForm({
             }
           >
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue>
+                {(v: string) =>
+                  v === "present"
+                    ? t("isPresent")
+                    : v === "absent"
+                      ? t("isAbsent")
+                      : v === "contains"
+                        ? t("contains")
+                        : t("equals")
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="present">{t("isPresent")}</SelectItem>
@@ -787,7 +810,9 @@ function SetTagForm({
             }
           >
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue>
+                {(v: string) => (v === "remove" ? t("removeTag") : t("addTag"))}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="add">{t("addTag")}</SelectItem>
@@ -800,10 +825,16 @@ function SetTagForm({
           {tags.length > 0 ? (
             <Select
               value={cfg.tag_id ?? ""}
-              onValueChange={(v) => onUpdateConfig({ tag_id: v })}
+              onValueChange={(v) =>
+                onUpdateConfig({ tag_id: v, tag_label: tagLabel(tags, v ?? "") ?? undefined })
+              }
             >
               <SelectTrigger>
-                <SelectValue placeholder={t("pickTag")} />
+                <SelectValue>
+                  {(v: string) => tagLabel(tags, v) ?? (
+                    <span className="text-subtle-foreground">{t("pickTag")}</span>
+                  )}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {tags.map((t) => (
@@ -816,7 +847,7 @@ function SetTagForm({
           ) : (
             <Input
               value={cfg.tag_id ?? ""}
-              onChange={(e) => onUpdateConfig({ tag_id: e.target.value })}
+              onChange={(e) => onUpdateConfig({ tag_id: e.target.value, tag_label: undefined })}
               placeholder={t("tagUuidPlaceholder")}
               className="font-mono text-xs"
             />
@@ -834,24 +865,31 @@ function SetTagForm({
   );
 }
 
+/** Display name for a picked tag id; null when nothing is picked. */
+function tagLabel(tags: Array<{ id: string; name: string }>, id: string): string | null {
+  if (!id) return null;
+  return tags.find((tag) => tag.id === id)?.name ?? id;
+}
+
 /**
  * Shared loader for both `condition` (subject=tag) and `set_tag`.
- * Falls back to raw UUID input if the endpoint is absent on older
- * deployments — the form remains authorable in that case.
+ * An account with no tags yet gets the raw id input instead of an
+ * empty picker, so the form stays authorable.
  */
 function useUserTags(): UserTag[] {
   const [tags, setTags] = useState<UserTag[]>([]);
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch("/api/tags").catch(() => null);
-        if (!res || !res.ok) return;
-        const json = (await res.json()) as { tags?: UserTag[] };
-        if (!cancelled) setTags(json.tags ?? []);
-      } catch {
-        // Tags endpoint absent — caller falls back to raw input.
-      }
+      // RLS scopes the read to the caller's account — same source the
+      // automation builder's tag pickers use. (This used to fetch an
+      // `/api/tags` route that doesn't exist, so every tag picker fell
+      // back to a raw UUID box.)
+      const { data } = await createClient()
+        .from("tags")
+        .select("id, name, color")
+        .order("name");
+      if (!cancelled) setTags((data ?? []) as UserTag[]);
     })();
     return () => {
       cancelled = true;
@@ -959,7 +997,15 @@ function SendMediaForm({
           }}
         >
           <SelectTrigger>
-            <SelectValue />
+            <SelectValue>
+              {(v: string) =>
+                v === "video"
+                  ? t("videoLabel")
+                  : v === "document"
+                    ? t("documentLabel")
+                    : t("imageLabel")
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="image">{t("imageLabel")}</SelectItem>

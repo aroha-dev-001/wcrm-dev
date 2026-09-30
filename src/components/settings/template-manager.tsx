@@ -14,6 +14,7 @@ import {
   Send,
   Upload,
   FileText,
+  Sparkles,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -60,6 +61,18 @@ import {
   extractVariableIndices,
   TEMPLATE_LIMITS,
 } from '@/lib/whatsapp/template-validators';
+import {
+  fillPlaceholders,
+  humanizeTemplateName,
+  nextVariableNumber,
+  renumberVariables,
+  TEMPLATE_EXAMPLES,
+  TEMPLATE_LANGUAGES,
+  toTemplateName,
+  VARIABLE_PRESETS,
+  type TemplateExample,
+  type VariablePresetKey,
+} from '@/lib/whatsapp/template-friendly';
 
 const CATEGORIES = ['Marketing', 'Utility', 'Authentication'] as const;
 type HeaderFormat = 'none' | 'text' | 'image' | 'video' | 'document';
@@ -82,6 +95,9 @@ interface TemplateFormData {
   header_sample: string;
   body_text: string;
   body_samples: string[];
+  /** Plain-language name per {{n}} ("Customer name"), keyed by n.
+   *  Editor-only — Meta stores just the number and the example. */
+  var_labels: Record<number, string>;
   footer_text: string;
   buttons: TemplateButton[];
 }
@@ -89,36 +105,50 @@ interface TemplateFormData {
 const emptyForm: TemplateFormData = {
   name: '',
   category: 'Marketing',
-  language: 'en_US',
+  language: 'en',
   header_format: 'none',
   header_content: '',
   header_media_url: '',
   header_sample: '',
   body_text: '',
   body_samples: [],
+  var_labels: {},
   footer_text: '',
   buttons: [],
 };
 
-const COMMON_LANGUAGE_CODES = [
-  'en_US',
-  'en_GB',
-  'en',
-  'es',
-  'es_ES',
-  'es_MX',
-  'fr',
-  'fr_FR',
-  'de',
-  'it',
-  'pt_BR',
-  'pt_PT',
-  'nl',
-  'pl',
-  'ru',
-  'tr',
-  'lt',
-];
+// Explicit key maps (not `t(\`category${x}\`)`) so the catalogue scanner
+// can see every key.
+const CATEGORY_LABEL_KEY = {
+  Marketing: 'categoryMarketing',
+  Utility: 'categoryUtility',
+  Authentication: 'categoryAuthentication',
+} as const;
+const CATEGORY_HINT_KEY = {
+  Marketing: 'categoryMarketingHint',
+  Utility: 'categoryUtilityHint',
+  Authentication: 'categoryAuthenticationHint',
+} as const;
+const VARIABLE_LABEL_KEY: Record<VariablePresetKey, 'varName' | 'varProduct' | 'varOrder' | 'varDate' | 'varAmount' | 'varOther'> = {
+  name: 'varName',
+  product: 'varProduct',
+  order: 'varOrder',
+  date: 'varDate',
+  amount: 'varAmount',
+  other: 'varOther',
+};
+
+function languageLabel(code: string): string {
+  return TEMPLATE_LANGUAGES.find((l) => l.code === code)?.label ?? code;
+}
+
+/** Named languages, plus the current code if it isn't one of them (a
+ *  template synced from Meta can use any code). */
+function languageOptions(current: string) {
+  return TEMPLATE_LANGUAGES.some((l) => l.code === current) || !current
+    ? TEMPLATE_LANGUAGES
+    : [{ code: current, label: current }, ...TEMPLATE_LANGUAGES];
+}
 
 function emptyButton(type: TemplateButton['type']): TemplateButton {
   switch (type) {
@@ -138,6 +168,25 @@ export function TemplateManager() {
   const supabase = createClient();
   const { user, loading: authLoading } = useAuth();
 
+  const headerLabel = (type: HeaderFormat) =>
+    type === 'none'
+      ? t('headerNone')
+      : type === 'text'
+        ? t('headerText')
+        : type === 'image'
+          ? t('headerImage')
+          : type === 'video'
+            ? t('headerVideo')
+            : t('headerDocument');
+  const buttonTypeLabel = (type: TemplateButton['type']) =>
+    type === 'URL'
+      ? t('btnUrl')
+      : type === 'PHONE_NUMBER'
+        ? t('btnPhone')
+        : type === 'COPY_CODE'
+          ? t('btnCopyCode')
+          : t('btnQuickReply');
+
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -153,6 +202,11 @@ export function TemplateManager() {
   // a new template; this id lets us clean up the old row if the user
   // renamed it before submitting.
   const [draftId, setDraftId] = useState<string | null>(null);
+  // Meta name of the template being edited. The name field shows a
+  // humanised label and is locked while editing, so the PATCH must use
+  // the stored name verbatim rather than re-deriving it from the label.
+  const [editingName, setEditingName] = useState<string | null>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   // Template selected for the confirm-delete dialog. The destructive
   // action goes through this two-step so a slip on the trash icon
@@ -171,6 +225,10 @@ export function TemplateManager() {
   // in sync with what the user typed.
   const bodyVarCount = useMemo(
     () => extractVariableIndices(form.body_text).length,
+    [form.body_text],
+  );
+  const bodyIndices = useMemo(
+    () => extractVariableIndices(form.body_text),
     [form.body_text],
   );
   const headerVarCount = useMemo(
@@ -230,9 +288,9 @@ export function TemplateManager() {
     }
 
     return {
-      name: form.name.trim(),
+      name: editingName ?? toTemplateName(form.name),
       category: form.category,
-      language: form.language.trim() || 'en_US',
+      language: form.language.trim() || 'en',
       header_type: form.header_format === 'none' ? undefined : form.header_format,
       header_content:
         form.header_format === 'text' ? form.header_content.trim() : undefined,
@@ -240,7 +298,10 @@ export function TemplateManager() {
         form.header_format !== 'none' && form.header_format !== 'text'
           ? form.header_media_url.trim() || undefined
           : undefined,
-      body_text: form.body_text.trim(),
+      // Renumber so a detail deleted mid-body ("{{1}} … {{3}}") still
+      // submits as the contiguous {{1}}, {{2}} Meta requires. Samples
+      // are aligned to the sorted numbers, so they stay valid as-is.
+      body_text: renumberVariables(form.body_text.trim()),
       footer_text: form.footer_text.trim() || undefined,
       buttons: form.buttons.length > 0 ? form.buttons : undefined,
       sample_values:
@@ -250,7 +311,7 @@ export function TemplateManager() {
 
   function formFromTemplate(template: MessageTemplate): TemplateFormData {
     return {
-      name: template.name,
+      name: humanizeTemplateName(template.name),
       category: template.category,
       language: template.language || 'en_US',
       header_format: (template.header_type ?? 'none') as HeaderFormat,
@@ -259,6 +320,7 @@ export function TemplateManager() {
       header_sample: template.sample_values?.header?.[0] ?? '',
       body_text: template.body_text,
       body_samples: template.sample_values?.body ?? [],
+      var_labels: {},
       footer_text: template.footer_text ?? '',
       buttons: template.buttons ?? [],
     };
@@ -266,6 +328,7 @@ export function TemplateManager() {
 
   function openEdit(template: MessageTemplate) {
     setEditingId(template.id);
+    setEditingName(template.name);
     setDraftId(null);
     setForm(formFromTemplate(template));
     setDialogOpen(true);
@@ -273,6 +336,7 @@ export function TemplateManager() {
 
   function openSubmitDraft(template: MessageTemplate) {
     setEditingId(null);
+    setEditingName(null);
     setDraftId(template.id);
     setForm(formFromTemplate(template));
     setDialogOpen(true);
@@ -280,15 +344,64 @@ export function TemplateManager() {
 
   function openCreate() {
     setEditingId(null);
+    setEditingName(null);
     setDraftId(null);
     setForm(emptyForm);
     setDialogOpen(true);
+  }
+
+  function applyExample(example: TemplateExample) {
+    setForm((prev) => ({
+      ...emptyForm,
+      language: prev.language,
+      name: example.title,
+      category: example.category,
+      body_text: example.body,
+      body_samples: [...example.samples],
+      var_labels: Object.fromEntries(
+        example.details.map((key, i) => [i + 1, t(VARIABLE_LABEL_KEY[key])]),
+      ),
+      footer_text: example.footer ?? '',
+      buttons: (example.quickReplies ?? []).map((text) => ({
+        type: 'QUICK_REPLY' as const,
+        text,
+      })),
+    }));
+  }
+
+  // Insert the next {{n}} at the cursor, pre-filling its example so
+  // Meta's review has a sample without the user thinking about it.
+  function insertVariable(preset: VariablePresetKey) {
+    const spec = VARIABLE_PRESETS.find((p) => p.key === preset)!;
+    const n = nextVariableNumber(form.body_text);
+    const token = `{{${n}}}`;
+    const el = bodyRef.current;
+    const start = el?.selectionStart ?? form.body_text.length;
+    const end = el?.selectionEnd ?? form.body_text.length;
+    const body = form.body_text.slice(0, start) + token + form.body_text.slice(end);
+    if (body.length > TEMPLATE_LIMITS.bodyMaxLength) return;
+    // n is above every existing number, so its sample sorts last.
+    const samples = form.body_samples.slice(0, bodyIndices.length);
+    setForm({
+      ...form,
+      body_text: body,
+      body_samples: [...samples, spec.example],
+      var_labels: { ...form.var_labels, [n]: t(VARIABLE_LABEL_KEY[preset]) },
+    });
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(start + token.length, start + token.length);
+    });
   }
 
   async function handleSubmit() {
     // AUTHENTICATION is blocked by the persistent banner + disabled
     // submit button; this is a defensive second line of defense.
     if (form.category === 'Authentication') return;
+    if (!editingName && !toTemplateName(form.name)) {
+      toast.error(t('nameRequired'));
+      return;
+    }
     try {
       setSubmitting(true);
       const isEdit = editingId !== null;
@@ -327,6 +440,7 @@ export function TemplateManager() {
       setDialogOpen(false);
       setForm(emptyForm);
       setEditingId(null);
+      setEditingName(null);
       setDraftId(null);
     } catch (err) {
       console.error('Submit error:', err);
@@ -587,7 +701,12 @@ export function TemplateManager() {
               <li key={template.id} className="flex items-start justify-between gap-3 px-4 py-3">
                   <div className="min-w-0 flex-1 space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-mono text-[13px] font-medium text-foreground">{template.name}</h3>
+                      <h3
+                        className="text-[13px] font-medium text-foreground"
+                        title={template.name}
+                      >
+                        {humanizeTemplateName(template.name)}
+                      </h3>
                       <Badge className={status.classes}>
                         {status.label}
                       </Badge>
@@ -704,12 +823,13 @@ export function TemplateManager() {
           setDialogOpen(open);
           if (!open) {
             setEditingId(null);
+            setEditingName(null);
             setDraftId(null);
             setForm(emptyForm);
           }
         }}
       >
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingId ? t('dialogEditTitle') : t('dialogNewTitle')}
@@ -728,7 +848,29 @@ export function TemplateManager() {
             </div>
           )}
 
-          <div className="space-y-4 py-2">
+          {!editingId && !draftId && (
+            <div className="space-y-2">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Sparkles className="size-3.5" />
+                {t('startFromExample')}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {TEMPLATE_EXAMPLES.map((example) => (
+                  <button
+                    key={example.title}
+                    type="button"
+                    onClick={() => applyExample(example)}
+                    className="cursor-pointer rounded-full border border-border bg-card px-2.5 py-1 text-xs text-foreground transition-colors hover:border-border-strong hover:bg-card-2"
+                  >
+                    {example.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="grid gap-6 py-2 md:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="min-w-0 space-y-4">
             <div className="space-y-2">
               <Label>{t('templateName')}</Label>
               <Input
@@ -741,7 +883,9 @@ export function TemplateManager() {
               <p className="text-[11px] text-muted-foreground">
                 {editingId
                   ? t('nameFixed')
-                  : t('nameHint')}
+                  : toTemplateName(form.name)
+                    ? t('nameSavedAs', { name: toTemplateName(form.name) })
+                    : t('nameHint')}
               </p>
             </div>
 
@@ -758,7 +902,9 @@ export function TemplateManager() {
                   }
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue />
+                    <SelectValue>
+                      {(v: string) => t(CATEGORY_LABEL_KEY[v as MessageTemplate['category']] ?? 'categoryMarketing')}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {CATEGORIES.map((cat) => (
@@ -767,7 +913,12 @@ export function TemplateManager() {
                         value={cat}
                         className="text-popover-foreground focus:bg-muted focus:text-popover-foreground"
                       >
-                        {cat}
+                        <span className="flex flex-col">
+                          <span>{t(CATEGORY_LABEL_KEY[cat])}</span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {t(CATEGORY_HINT_KEY[cat])}
+                          </span>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -776,27 +927,30 @@ export function TemplateManager() {
 
               <div className="space-y-2">
                 <Label>{t('language')}</Label>
-                <Input
-                  list="template-language-codes"
-                  placeholder="en_US"
+                <Select
                   value={form.language}
-                  onChange={(e) =>
-                    setForm({ ...form, language: e.target.value })
-                  }
+                  onValueChange={(val) => val && setForm({ ...form, language: val })}
                   disabled={editingId !== null}
-                  className="disabled:opacity-60 disabled:cursor-not-allowed"
-                />
-                <datalist id="template-language-codes">
-                  {COMMON_LANGUAGE_CODES.map((code) => (
-                    <option key={code} value={code} />
-                  ))}
-                </datalist>
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue>
+                      {(v: string) => languageLabel(v)}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {languageOptions(form.language).map((lang) => (
+                      <SelectItem
+                        key={lang.code}
+                        value={lang.code}
+                        className="text-popover-foreground focus:bg-muted focus:text-popover-foreground"
+                      >
+                        {lang.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-[11px] text-muted-foreground">
-                  {editingId ? (
-                    t('langFixed')
-                  ) : (
-                    <span>{t.rich('langHint', { code: (chunks) => <code>{chunks}</code> })}</span>
-                  )}
+                  {editingId ? t('langFixed') : t('langHintFriendly')}
                 </p>
               </div>
             </div>
@@ -819,7 +973,9 @@ export function TemplateManager() {
                 }
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>
+                    {(v: string) => headerLabel(v as HeaderFormat)}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {HEADER_FORMATS.map((type) => (
@@ -828,15 +984,7 @@ export function TemplateManager() {
                       value={type}
                       className="text-popover-foreground focus:bg-muted focus:text-popover-foreground"
                     >
-                      {type === 'none'
-                        ? t('headerNone')
-                        : type === 'text'
-                          ? t('headerText')
-                          : type === 'image'
-                            ? t('headerImage')
-                            : type === 'video'
-                              ? t('headerVideo')
-                              : t('headerDocument')}
+                      {headerLabel(type)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -932,8 +1080,23 @@ export function TemplateManager() {
 
             <div className="space-y-2">
               <Label>{t('bodyText')}</Label>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground">{t('addDetail')}</span>
+                {VARIABLE_PRESETS.map((preset) => (
+                  <button
+                    key={preset.key}
+                    type="button"
+                    onClick={() => insertVariable(preset.key)}
+                    className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[11px] text-foreground transition-colors hover:border-border-strong hover:bg-card-2"
+                  >
+                    <Plus className="size-3" />
+                    {t(VARIABLE_LABEL_KEY[preset.key])}
+                  </button>
+                ))}
+              </div>
               <Textarea
-                placeholder={t.raw('bodyPlaceholder')}
+                ref={bodyRef}
+                placeholder={t.raw('bodyPlaceholderFriendly')}
                 value={form.body_text}
                 onChange={(e) =>
                   setForm({ ...form, body_text: e.target.value })
@@ -943,29 +1106,35 @@ export function TemplateManager() {
                 className="resize-none"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t.raw('bodyHint')}
+                {t('bodyHintFriendly')}
               </p>
 
               {bodyVarCount > 0 && (
                 <div className="space-y-1.5 pt-1">
                   <Label className="text-[11px]">
-                    {t('sampleValues')}
+                    {t('sampleValuesFriendly')}
                   </Label>
                   {form.body_samples.map((val, i) => {
                     const inputId = `template-body-sample-${i}`;
+                    const n = bodyIndices[i] ?? i + 1;
+                    const label = form.var_labels[n] ?? t('detailN', { n: i + 1 });
                     return (
-                      <Input
-                        key={i}
-                        id={inputId}
-                        aria-label={t('sampleAria', { var: `{{${i + 1}}}` })}
-                        placeholder={t('samplePlaceholder', { var: `{{${i + 1}}}` })}
-                        value={val}
-                        onChange={(e) => {
-                          const next = [...form.body_samples];
-                          next[i] = e.target.value;
-                          setForm({ ...form, body_samples: next });
-                        }}
-                      />
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="w-32 shrink-0 truncate text-[11px] text-muted-foreground" title={`{{${n}}}`}>
+                          {label}
+                        </span>
+                        <Input
+                          id={inputId}
+                          aria-label={t('sampleAria', { var: label })}
+                          placeholder={t('samplePlaceholderFriendly')}
+                          value={val}
+                          onChange={(e) => {
+                            const next = [...form.body_samples];
+                            next[i] = e.target.value;
+                            setForm({ ...form, body_samples: next });
+                          }}
+                        />
+                      </div>
                     );
                   })}
                 </div>
@@ -1021,8 +1190,10 @@ export function TemplateManager() {
                             changeButtonType(i, val as TemplateButton['type']);
                           }}
                         >
-                          <SelectTrigger className="w-40 h-8 text-xs">
-                            <SelectValue />
+                          <SelectTrigger className="w-44 h-8 text-xs">
+                            <SelectValue>
+                              {(v: string) => buttonTypeLabel(v as TemplateButton['type'])}
+                            </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem
@@ -1118,6 +1289,14 @@ export function TemplateManager() {
               )}
             </div>
           </div>
+            <div className="self-start md:sticky md:top-0">
+              <TemplatePreview
+                form={form}
+                previewLabel={t('preview')}
+                previewHint={t('previewHint')}
+              />
+            </div>
+          </div>
 
           <DialogFooter>
             <Button
@@ -1189,5 +1368,87 @@ export function TemplateManager() {
         </DialogContent>
       </Dialog>
     </section>
+  );
+}
+
+/**
+ * What the customer will see: the message as a WhatsApp bubble with
+ * every {{n}} filled from its example and *bold* / _italic_ rendered.
+ */
+function TemplatePreview({
+  form,
+  previewLabel,
+  previewHint,
+}: {
+  form: TemplateFormData;
+  previewLabel: string;
+  previewHint: string;
+}) {
+  const body = fillPlaceholders(form.body_text, form.body_samples);
+  const header =
+    form.header_format === 'text'
+      ? fillPlaceholders(form.header_content, [form.header_sample])
+      : '';
+  const buttons = form.buttons.filter((b) => b.text.trim());
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">{previewLabel}</p>
+      <div className="rounded-lg border border-border bg-muted p-3">
+        <div className="rounded-lg rounded-tl-none bg-card px-3 py-2 text-[13px] text-foreground shadow-xs">
+          {form.header_format !== 'none' && form.header_format !== 'text' && (
+            <div className="mb-2 flex h-24 items-center justify-center overflow-hidden rounded-md bg-muted text-[11px] text-muted-foreground uppercase">
+              {form.header_format === 'image' && form.header_media_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={form.header_media_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                form.header_format
+              )}
+            </div>
+          )}
+          {header && <p className="mb-1 font-semibold">{header}</p>}
+          <p className="break-words whitespace-pre-wrap">
+            {body.trim() ? <WhatsAppText text={body} /> : <span className="text-muted-foreground">…</span>}
+          </p>
+          {form.footer_text.trim() && (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">{form.footer_text}</p>
+          )}
+          <p className="mt-1 text-right text-[10px] text-muted-foreground tabular-nums">12:00</p>
+        </div>
+        {buttons.length > 0 && (
+          <div className="mt-1 space-y-1">
+            {buttons.map((b, i) => (
+              <div
+                key={i}
+                className="rounded-lg bg-card px-3 py-1.5 text-center text-[13px] font-medium text-primary shadow-xs"
+              >
+                {b.text}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <p className="text-[11px] leading-relaxed text-muted-foreground">{previewHint}</p>
+    </div>
+  );
+}
+
+/** Renders WhatsApp's *bold*, _italic_ and ~strike~ markers. */
+function WhatsAppText({ text }: { text: string }) {
+  const parts = text.split(/(\*[^*\n]+\*|_[^_\n]+_|~[^~\n]+~)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.length > 2 && part.startsWith('*') && part.endsWith('*')) {
+          return <strong key={i}>{part.slice(1, -1)}</strong>;
+        }
+        if (part.length > 2 && part.startsWith('_') && part.endsWith('_')) {
+          return <em key={i}>{part.slice(1, -1)}</em>;
+        }
+        if (part.length > 2 && part.startsWith('~') && part.endsWith('~')) {
+          return <s key={i}>{part.slice(1, -1)}</s>;
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
   );
 }
